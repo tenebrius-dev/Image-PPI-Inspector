@@ -1,0 +1,699 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "fileKey": "C87oqghCfxdKR5iYmCxEVP",
+    "extractedAt": "2026-08-02"
+  },
+  "effectStyles": [
+    {
+      "name": "dark/elevation-100-canvas",
+      "key": "a07a31a803d0cc16e6335961242ca57efdb192d5",
+      "description": "",
+      "effects": [
+        {
+          "type": "DROP_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.4
+          },
+          "offset": {
+            "x": 0,
+            "y": 1
+          },
+          "radius": 3,
+          "spread": 0,
+          "showShadowBehindNode": false
+        },
+        {
+          "type": "INNER_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0.3
+          },
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 0.5,
+          "spread": 0
+        },
+        {
+          "type": "INNER_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0.1
+          },
+          "offset": {
+            "x": 0,
+            "y": 0.5
+          },
+          "radius": 0,
+          "spread": 0
+        },
+        {
+          "type": "DROP_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.5
+          },
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 0.5,
+          "spread": 0,
+          "showShadowBehindNode": false
+        }
+      ]
+    },
+    {
+      "name": "dark/elevation-200-canvas",
+      "key": "9ebdc8514534bc45cc0aa4d9cf9c35fb8ee6b3d4",
+      "description": "",
+      "effects": [
+        {
+          "type": "DROP_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.5
+          },
+          "offset": {
+            "x": 0,
+            "y": 1
+          },
+          "radius": 3,
+          "spread": 0,
+          "showShadowBehindNode": false
+        },
+        {
+          "type": "INNER_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0.3
+          },
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 0.5,
+          "spread": 0
+        },
+        {
+          "type": "DROP_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.35
+          },
+          "offset": {
+            "x": 0,
+            "y": 3
+          },
+          "radius": 8,
+          "spread": 0,
+          "showShadowBehindNode": false
+        },
+        {
+          "type": "INNER_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0.08
+          },
+          "offset": {
+            "x": 0,
+            "y": 0.5
+          },
+          "radius": 0,
+          "spread": 0
+        }
+      ]
+    },
+    {
+      "name": "dark/elevation-300-tooltip",
+      "key": "f8451b87064400cd04f7531d808388e7ccdb7fa5",
+      "description": "",
+      "effects": [
+        {
+          "type": "DROP_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.5
+          },
+          "offset": {
+            "x": 0,
+            "y": 1
+          },
+          "radius": 3,
+          "spread": 0,
+          "showShadowBehindNode": true
+        },
+        {
+          "type": "INNER_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0.3
+          },
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 0.5,
+          "spread": 0
+        },
+        {
+          "type": "DROP_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.35
+          },
+          "offset": {
+            "x": 0,
+            "y": 5
+          },
+          "radius": 12,
+          "spread": 0,
+          "showShadowBehindNode": true
+        },
+        {
+          "type": "INNER_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0.08
+          },
+          "offset": {
+            "x": 0,
+            "y": 0.5
+          },
+          "radius": 0,
+          "spread": 0
+        }
+      ]
+    },
+    {
+      "name": "dark/elevation-400-menu-panel",
+      "key": "66cf0615c9a3319c545ff8858cc89515ea267cdc",
+      "description": "",
+      "effects": [
+        {
+          "type": "DROP_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.35
+          },
+          "offset": {
+            "x": 0,
+            "y": 2
+          },
+          "radius": 5,
+          "spread": 0,
+          "showShadowBehindNode": false
+        },
+        {
+          "type": "INNER_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0.35
+          },
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 0.5,
+          "spread": 0
+        },
+        {
+          "type": "DROP_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.35
+          },
+          "offset": {
+            "x": 0,
+            "y": 10
+          },
+          "radius": 16,
+          "spread": 0,
+          "showShadowBehindNode": false
+        },
+        {
+          "type": "INNER_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0.08
+          },
+          "offset": {
+            "x": 0,
+            "y": 0.5
+          },
+          "radius": 0,
+          "spread": 0
+        }
+      ]
+    },
+    {
+      "name": "dark/elevation-500-modal-window",
+      "key": "4dd8a4f6a3616169ca02444b4efa12913a278dac",
+      "description": "",
+      "effects": [
+        {
+          "type": "DROP_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.35
+          },
+          "offset": {
+            "x": 0,
+            "y": 3
+          },
+          "radius": 5,
+          "spread": 0,
+          "showShadowBehindNode": false
+        },
+        {
+          "type": "INNER_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0.35
+          },
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 0.5,
+          "spread": 0
+        },
+        {
+          "type": "DROP_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.45
+          },
+          "offset": {
+            "x": 0,
+            "y": 10
+          },
+          "radius": 24,
+          "spread": 0,
+          "showShadowBehindNode": false
+        },
+        {
+          "type": "INNER_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 0.08
+          },
+          "offset": {
+            "x": 0,
+            "y": 0.5
+          },
+          "radius": 0,
+          "spread": 0
+        }
+      ]
+    },
+    {
+      "name": "light/elevation-100-canvas",
+      "key": "8faff468b50658f2104224ba4a3f82530c58ffff",
+      "description": "var(--elevation-100)",
+      "effects": [
+        {
+          "type": "DROP_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.15
+          },
+          "offset": {
+            "x": 0,
+            "y": 1
+          },
+          "radius": 3,
+          "spread": 0,
+          "showShadowBehindNode": true
+        },
+        {
+          "type": "DROP_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.3
+          },
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 0.5,
+          "spread": 0,
+          "showShadowBehindNode": true
+        }
+      ]
+    },
+    {
+      "name": "light/elevation-200-canvas",
+      "key": "38d3b9043802c0ea8ce20c07891edf7c2e6884ad",
+      "description": "",
+      "effects": [
+        {
+          "type": "DROP_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.1
+          },
+          "offset": {
+            "x": 0,
+            "y": 1
+          },
+          "radius": 3,
+          "spread": 0,
+          "showShadowBehindNode": true
+        },
+        {
+          "type": "DROP_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.1
+          },
+          "offset": {
+            "x": 0,
+            "y": 3
+          },
+          "radius": 8,
+          "spread": 0,
+          "showShadowBehindNode": true
+        },
+        {
+          "type": "DROP_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.18
+          },
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 0.5,
+          "spread": 0,
+          "showShadowBehindNode": true
+        }
+      ]
+    },
+    {
+      "name": "light/elevation-300-tooltip",
+      "key": "77990536649e1fc120624ee9b9e88b57afc15983",
+      "description": "",
+      "effects": [
+        {
+          "type": "DROP_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.1
+          },
+          "offset": {
+            "x": 0,
+            "y": 1
+          },
+          "radius": 3,
+          "spread": 0,
+          "showShadowBehindNode": true
+        },
+        {
+          "type": "DROP_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.13
+          },
+          "offset": {
+            "x": 0,
+            "y": 5
+          },
+          "radius": 12,
+          "spread": 0,
+          "showShadowBehindNode": true
+        },
+        {
+          "type": "DROP_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.15
+          },
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 0.5,
+          "spread": 0,
+          "showShadowBehindNode": true
+        }
+      ]
+    },
+    {
+      "name": "light/elevation-400-menu-panel",
+      "key": "4e0cd4616a4a4211696fba8dea328d4357eacbef",
+      "description": "",
+      "effects": [
+        {
+          "type": "DROP_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.15
+          },
+          "offset": {
+            "x": 0,
+            "y": 2
+          },
+          "radius": 5,
+          "spread": 0,
+          "showShadowBehindNode": true
+        },
+        {
+          "type": "DROP_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.12
+          },
+          "offset": {
+            "x": 0,
+            "y": 10
+          },
+          "radius": 16,
+          "spread": 0,
+          "showShadowBehindNode": true
+        },
+        {
+          "type": "DROP_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.12
+          },
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 0.5,
+          "spread": 0,
+          "showShadowBehindNode": true
+        }
+      ]
+    },
+    {
+      "name": "light/elevation-500-modal-window",
+      "key": "93eb68072d704c007556b8211cf942a8ce978c68",
+      "description": "",
+      "effects": [
+        {
+          "type": "DROP_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.15
+          },
+          "offset": {
+            "x": 0,
+            "y": 2
+          },
+          "radius": 5,
+          "spread": 0,
+          "showShadowBehindNode": true
+        },
+        {
+          "type": "DROP_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.18
+          },
+          "offset": {
+            "x": 0,
+            "y": 10
+          },
+          "radius": 24,
+          "spread": 0,
+          "showShadowBehindNode": true
+        },
+        {
+          "type": "DROP_SHADOW",
+          "visible": true,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.08
+          },
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 0.5,
+          "spread": 0,
+          "showShadowBehindNode": true
+        },
+        {
+          "type": "DROP_SHADOW",
+          "visible": false,
+          "blendMode": "NORMAL",
+          "color": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0.05
+          },
+          "offset": {
+            "x": 0,
+            "y": 3
+          },
+          "radius": 12,
+          "spread": 0,
+          "showShadowBehindNode": false
+        }
+      ]
+    }
+  ]
+}

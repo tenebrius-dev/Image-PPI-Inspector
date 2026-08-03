@@ -1,0 +1,134 @@
+/*
+ * Stable product-facing adapter.
+ * Feature code should use these aliases, not generated --ui3-color-* values.
+ */
+:root {
+  color-scheme: light dark;
+
+  --ui3-bg: var(--figma-color-bg, var(--ui3-color-bg-default-default));
+  --ui3-bg-hover: var(--figma-color-bg-hover, var(--ui3-color-bg-default-hover));
+  --ui3-bg-pressed: var(--figma-color-bg-pressed, var(--ui3-color-bg-default-pressed));
+  --ui3-bg-secondary: var(--figma-color-bg-secondary, var(--ui3-color-bg-default-secondary));
+  --ui3-bg-tertiary: var(--figma-color-bg-tertiary, var(--ui3-color-bg-default-tertiary));
+  --ui3-bg-brand: var(--figma-color-bg-brand, var(--ui3-color-bg-brand-default));
+  --ui3-bg-brand-hover: var(--figma-color-bg-brand-hover, var(--ui3-color-bg-brand-hover));
+  --ui3-bg-brand-pressed: var(--figma-color-bg-brand-pressed, var(--ui3-color-bg-brand-pressed));
+  --ui3-bg-danger: var(--figma-color-bg-danger, var(--ui3-color-bg-danger-default));
+  --ui3-bg-success: var(--figma-color-bg-success, var(--ui3-color-bg-success-default));
+  --ui3-bg-warning: var(--figma-color-bg-warning, var(--ui3-color-bg-warning-default));
+  --ui3-bg-selected: var(--figma-color-bg-selected, var(--ui3-color-bg-selected-default));
+
+  --ui3-text: var(--figma-color-text, var(--ui3-color-text-default-default));
+  --ui3-text-secondary: var(--figma-color-text-secondary, var(--ui3-color-text-default-secondary));
+  --ui3-text-tertiary: var(--figma-color-text-tertiary, var(--ui3-color-text-default-tertiary));
+  --ui3-text-disabled: var(--figma-color-text-disabled, var(--ui3-color-text-disabled-default));
+  --ui3-text-brand: var(--figma-color-text-brand, var(--ui3-color-text-brand-default));
+  --ui3-text-danger: var(--figma-color-text-danger, var(--ui3-color-text-danger-default));
+  --ui3-text-success: var(--figma-color-text-success, var(--ui3-color-text-success-default));
+  --ui3-text-warning: var(--figma-color-text-warning, var(--ui3-color-text-warning-default));
+  --ui3-text-on-brand: var(--figma-color-text-onbrand, var(--ui3-color-text-brand-onbrand));
+
+  --ui3-icon: var(--figma-color-icon, var(--ui3-color-icon-default-default));
+  --ui3-icon-secondary: var(--figma-color-icon-secondary, var(--ui3-color-icon-default-secondary));
+  --ui3-icon-tertiary: var(--figma-color-icon-tertiary, var(--ui3-color-icon-default-tertiary));
+  --ui3-icon-disabled: var(--figma-color-icon-disabled, var(--ui3-color-icon-disabled-default));
+  --ui3-icon-brand: var(--figma-color-icon-brand, var(--ui3-color-icon-brand-default));
+  --ui3-icon-danger: var(--figma-color-icon-danger, var(--ui3-color-icon-danger-default));
+  --ui3-icon-success: var(--figma-color-icon-success, var(--ui3-color-icon-success-default));
+  --ui3-icon-warning: var(--figma-color-icon-warning, var(--ui3-color-icon-warning-default));
+  --ui3-icon-on-brand: var(--figma-color-icon-onbrand, var(--ui3-color-icon-brand-onbrand));
+
+  --ui3-border: var(--figma-color-border, var(--ui3-color-border-default-default));
+  --ui3-border-strong: var(--figma-color-border-strong, var(--ui3-color-border-default-strong));
+  --ui3-border-selected: var(--figma-color-border-selected, var(--ui3-color-border-selected-default));
+  --ui3-border-danger: var(--figma-color-border-danger-strong, var(--ui3-color-border-danger-strong));
+
+  --ui3-font-ui: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --ui3-font-mono: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --ui3-radius-small: var(--ui3-size-radius-radius-small);
+  --ui3-radius-medium: var(--ui3-size-radius-radius-medium);
+  --ui3-radius-large: var(--ui3-size-radius-radius-large);
+  --ui3-radius-full: var(--ui3-size-radius-radius-full);
+
+  --ui3-space-0: var(--ui3-size-spacers-spacer-0);
+  --ui3-space-1: var(--ui3-size-spacers-spacer-1);
+  --ui3-space-2: var(--ui3-size-spacers-spacer-2);
+  --ui3-space-3: var(--ui3-size-spacers-spacer-3);
+  --ui3-space-4: var(--ui3-size-spacers-spacer-4);
+  --ui3-space-5: var(--ui3-size-spacers-spacer-5);
+  --ui3-space-6: var(--ui3-size-spacers-spacer-6);
+}
+
+html,
+body {
+  margin: 0;
+  color: var(--ui3-text);
+  background: var(--ui3-bg);
+  font-family: var(--ui3-font-ui);
+  font-size: var(--ui3-type-body-medium-fontsize);
+  font-weight: var(--ui3-type-body-medium-fontweight);
+  line-height: var(--ui3-type-body-medium-lineheight);
+  letter-spacing: var(--ui3-type-body-medium-letterspacing);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ui3-border-selected);
+  outline-offset: 1px;
+}
+
+.ui3-body-large {
+  font-family: var(--ui3-type-body-large-fontfamily);
+  font-size: var(--ui3-type-body-large-fontsize);
+  font-weight: var(--ui3-type-body-large-fontweight);
+  line-height: var(--ui3-type-body-large-lineheight);
+  letter-spacing: var(--ui3-type-body-large-letterspacing);
+}
+
+.ui3-body-medium {
+  font-family: var(--ui3-type-body-medium-fontfamily);
+  font-size: var(--ui3-type-body-medium-fontsize);
+  font-weight: var(--ui3-type-body-medium-fontweight);
+  line-height: var(--ui3-type-body-medium-lineheight);
+  letter-spacing: var(--ui3-type-body-medium-letterspacing);
+}
+
+.ui3-body-small {
+  font-family: var(--ui3-type-body-small-fontfamily);
+  font-size: var(--ui3-type-body-small-fontsize);
+  font-weight: var(--ui3-type-body-small-fontweight);
+  line-height: var(--ui3-type-body-small-lineheight);
+  letter-spacing: var(--ui3-type-body-small-letterspacing);
+}
+
+.ui3-heading-large {
+  font-family: var(--ui3-type-heading-large-fontfamily);
+  font-size: var(--ui3-type-heading-large-fontsize);
+  font-weight: var(--ui3-type-heading-large-fontweight);
+  line-height: var(--ui3-type-heading-large-lineheight);
+  letter-spacing: var(--ui3-type-heading-large-letterspacing);
+}
+
+.ui3-heading-medium {
+  font-family: var(--ui3-type-heading-medium-fontfamily);
+  font-size: var(--ui3-type-heading-medium-fontsize);
+  font-weight: var(--ui3-type-heading-medium-fontweight);
+  line-height: var(--ui3-type-heading-medium-lineheight);
+  letter-spacing: var(--ui3-type-heading-medium-letterspacing);
+}
+
+.ui3-heading-small {
+  font-family: var(--ui3-type-heading-small-fontfamily);
+  font-size: var(--ui3-type-heading-small-fontsize);
+  font-weight: var(--ui3-type-heading-small-fontweight);
+  line-height: var(--ui3-type-heading-small-lineheight);
+  letter-spacing: var(--ui3-type-heading-small-letterspacing);
+}
+

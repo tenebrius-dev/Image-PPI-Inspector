@@ -1,0 +1,91 @@
+/*
+ * Dropdown/menu contract.
+ * Figma UI3 menus use a dark surface with light content in both editor
+ * themes. Keep the menu colors explicit so native select controls and
+ * custom listboxes do not inherit an unreadable color from the page.
+ */
+:root {
+  --ui3-dropdown-bg: var(--figma-color-bg-menu, var(--ui3-color-bg-menu-default));
+  --ui3-dropdown-bg-hover: var(--figma-color-bg-menu-hover, var(--ui3-color-bg-menu-hover));
+  --ui3-dropdown-bg-pressed: var(--figma-color-bg-menu-pressed, var(--ui3-color-bg-menu-pressed));
+  --ui3-dropdown-bg-selected: var(--figma-color-bg-menu-selected, var(--ui3-color-bg-menu-selected));
+  --ui3-dropdown-text: var(--figma-color-text-menu, var(--ui3-color-text-menu-default));
+  --ui3-dropdown-text-secondary: var(--figma-color-text-menu-secondary, var(--ui3-color-text-menu-secondary));
+  --ui3-dropdown-text-disabled: var(--figma-color-text-menu-disabled, var(--ui3-color-text-menu-disabled));
+  --ui3-dropdown-text-selected: var(--figma-color-text-menu-selected-onselected, var(--ui3-color-text-menu-selected-onselected));
+  --ui3-dropdown-border: var(--figma-color-border-menu, var(--ui3-color-border-menu-default));
+  --ui3-dropdown-shadow: var(--ui3-elevation-400-menu-panel);
+}
+
+/* Native select: the popup inherits an explicit readable foreground and surface. */
+select.ui3-dropdown,
+.ui3-dropdown select {
+  color: var(--ui3-dropdown-text);
+  color-scheme: dark;
+  background-color: var(--ui3-dropdown-bg);
+  border: 1px solid var(--ui3-dropdown-border);
+}
+
+select.ui3-dropdown option,
+.ui3-dropdown select option {
+  color: var(--ui3-dropdown-text);
+  background-color: var(--ui3-dropdown-bg);
+}
+
+/* Custom dropdown/listbox primitives. */
+.ui3-dropdown__trigger {
+  color: var(--ui3-dropdown-text);
+  background: var(--ui3-dropdown-bg);
+  border: 1px solid var(--ui3-dropdown-border);
+  border-radius: var(--ui3-radius-medium);
+  box-shadow: none;
+}
+
+.ui3-dropdown__trigger:hover {
+  background: var(--ui3-dropdown-bg-hover);
+}
+
+.ui3-dropdown__trigger:active,
+.ui3-dropdown__trigger[aria-expanded="true"] {
+  background: var(--ui3-dropdown-bg-pressed);
+}
+
+.ui3-dropdown__menu {
+  color: var(--ui3-dropdown-text);
+  background: var(--ui3-dropdown-bg);
+  border: 1px solid var(--ui3-dropdown-border);
+  border-radius: var(--ui3-radius-medium);
+  box-shadow: var(--ui3-dropdown-shadow);
+  color-scheme: dark;
+}
+
+.ui3-dropdown__option,
+.ui3-dropdown__menu [role="option"] {
+  color: var(--ui3-dropdown-text);
+  background: transparent;
+}
+
+.ui3-dropdown__option:hover,
+.ui3-dropdown__option[data-highlighted="true"],
+.ui3-dropdown__menu [role="option"]:hover,
+.ui3-dropdown__menu [role="option"][data-highlighted="true"] {
+  color: var(--ui3-dropdown-text);
+  background: var(--ui3-dropdown-bg-hover);
+}
+
+.ui3-dropdown__option:active,
+.ui3-dropdown__menu [role="option"]:active {
+  background: var(--ui3-dropdown-bg-pressed);
+}
+
+.ui3-dropdown__option[aria-selected="true"],
+.ui3-dropdown__menu [role="option"][aria-selected="true"] {
+  color: var(--ui3-dropdown-text-selected);
+  background: var(--ui3-dropdown-bg-selected);
+}
+
+.ui3-dropdown__option[aria-disabled="true"],
+.ui3-dropdown__menu [role="option"][aria-disabled="true"] {
+  color: var(--ui3-dropdown-text-disabled);
+  cursor: not-allowed;
+}

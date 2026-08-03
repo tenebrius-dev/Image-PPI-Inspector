@@ -2,9 +2,10 @@
   "name": "image-ppi-inspector",
   "version": "1.0.0",
   "private": true,
-"scripts": {
-    "build": "tsc",
-    "watch": "tsc -w"
+  "scripts": {
+    "build": "npm run build:ui && tsc",
+    "watch": "tsc -w",
+    "build:ui": "node build-ui.js"
   },
   "devDependencies": {
     "@figma/plugin-typings": "^1.124.0",

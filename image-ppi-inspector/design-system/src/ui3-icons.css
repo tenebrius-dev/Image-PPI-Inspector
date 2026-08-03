@@ -1,0 +1,73 @@
+.ui3-icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  flex: 0 0 auto;
+  color: var(--ui3-icon);
+  fill: currentColor;
+  vertical-align: -0.125em;
+}
+
+.ui3-icon[data-size="16"] {
+  width: 16px;
+  height: 16px;
+}
+
+.ui3-icon[data-size="24"] {
+  width: 24px;
+  height: 24px;
+}
+
+.ui3-icon[data-tone="secondary"] {
+  color: var(--ui3-icon-secondary);
+}
+
+.ui3-icon[data-tone="tertiary"] {
+  color: var(--ui3-icon-tertiary);
+}
+
+.ui3-icon[data-tone="brand"] {
+  color: var(--ui3-icon-brand);
+}
+
+.ui3-icon[data-tone="danger"] {
+  color: var(--ui3-icon-danger);
+}
+
+.ui3-icon[data-tone="success"] {
+  color: var(--ui3-icon-success);
+}
+
+.ui3-icon[data-tone="warning"] {
+  color: var(--ui3-icon-warning);
+}
+
+.ui3-icon[aria-disabled="true"] {
+  color: var(--ui3-icon-disabled);
+}
+
+.ui3-iconButton {
+  display: inline-grid;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  place-items: center;
+  color: var(--ui3-icon);
+  background: transparent;
+  border: 0;
+  border-radius: var(--ui3-radius-medium);
+}
+
+.ui3-iconButton:hover {
+  background: var(--ui3-bg-hover);
+}
+
+.ui3-iconButton:active {
+  background: var(--ui3-bg-pressed);
+}
+
+.ui3-iconButton:disabled {
+  color: var(--ui3-icon-disabled);
+  cursor: not-allowed;
+}
+

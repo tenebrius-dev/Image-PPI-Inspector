@@ -1,0 +1,13 @@
+{
+  "name": "@internal/ui3-plugin-design-system",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "validate": "node scripts/validate.mjs",
+    "effects:build": "node scripts/generate-effects-css.mjs",
+    "icons:list": "node scripts/build-icon-module.mjs --list",
+    "icons:module": "node scripts/build-icon-module.mjs",
+    "icons:sync": "node scripts/sync-icons.mjs"
+  }
+}
