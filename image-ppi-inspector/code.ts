@@ -128,20 +128,36 @@ async function findAllImageNodesAsync(nodes: readonly BaseNode[]): Promise<Scene
 
 async function calculateNodeData(node: SceneNode): Promise<ImageNodeData | null> {
     try {
-        if (!('fills' in node) || node.fills === figma.mixed || !Array.isArray(node.fills)) return null;
+        console.log(`[PPI Inspector] Analyzing node: ${node.name} (${node.id})`);
+        if (!('fills' in node) || node.fills === figma.mixed || !Array.isArray(node.fills)) {
+            console.warn(`[PPI Inspector] Skipping ${node.name}: No valid fills array (fills is mixed or missing)`);
+            return null;
+        }
 
         const fill = getTopVisibleImageFill(node.fills);
-        if (!fill) return null;
+        if (!fill) {
+            console.warn(`[PPI Inspector] Skipping ${node.name}: getTopVisibleImageFill returned null (no visible IMAGE fill)`);
+            return null;
+        }
 
         const image = figma.getImageByHash(fill.imageHash);
-        if (!image) return null;
+        if (!image) {
+            console.warn(`[PPI Inspector] Skipping ${node.name}: figma.getImageByHash returned null (broken image reference)`);
+            return null;
+        }
 
         let size: { width: number; height: number };
         try {
             size = await image.getSizeAsync();
-        } catch {
-            await image.getBytesAsync(); // force load into memory
-            size = await image.getSizeAsync();
+        } catch (e1) {
+            console.warn(`[PPI Inspector] getSizeAsync failed for ${node.name}, attempting getBytesAsync to force load...`);
+            try {
+                await image.getBytesAsync();
+                size = await image.getSizeAsync();
+            } catch (e2) {
+                console.error(`[PPI Inspector] Failed to load image size for ${node.name} even after getBytesAsync.`, e2);
+                throw e2;
+            }
         }
 
         const transform = fill.imageTransform;
@@ -211,13 +227,16 @@ async function checkSelection(): Promise<void> {
     }
 
     const imageNodes = findImageNodesInSelection(selection);
+    console.log(`[PPI Inspector] checkSelection: Selected ${selection.length} nodes. Found ${imageNodes.length} image nodes inside.`);
 
     if (imageNodes.length > 0 && imageNodes.length <= 50) {
+        console.log(`[PPI Inspector] checkSelection: Processing ${imageNodes.length} nodes...`);
         const images: ImageNodeData[] = [];
         for (const node of imageNodes) {
             const data = await calculateNodeData(node);
             if (data) images.push(data);
         }
+        console.log(`[PPI Inspector] checkSelection: Successfully calculated data for ${images.length} images.`);
         if (images.length > 0) {
             figma.ui.postMessage({
                 type: 'images-list',
@@ -229,8 +248,10 @@ async function checkSelection(): Promise<void> {
     }
 
     if (imageNodes.length === 0) {
+        console.log(`[PPI Inspector] checkSelection: 0 valid image nodes found. Clearing UI.`);
         figma.ui.postMessage({ type: 'clear' });
     } else {
+        console.log(`[PPI Inspector] checkSelection: Found ${imageNodes.length} nodes (>50). Showing 'Scan Selection' button instead of auto-processing.`);
         // More than 50 images — update scan button context without auto-scan
         figma.ui.postMessage({ type: 'selection-context', hasSelection: true });
     }
