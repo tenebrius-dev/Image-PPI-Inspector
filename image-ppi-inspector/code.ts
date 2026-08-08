@@ -51,6 +51,21 @@ figma.skipInvisibleInstanceChildren = true;
 
 let cancelScanRequested = false;
 
+// ── Diagnostics ────────────────────────────────────────────────────────────
+let diagLogs: string[] = [];
+function logDiag(msg: string) {
+    console.log(`[PPI Inspector] ${msg}`);
+    diagLogs.push(msg);
+    if (diagLogs.length > 100) diagLogs.shift();
+    figma.ui.postMessage({ type: 'debug-logs', logs: diagLogs.join('\\n') });
+}
+function warnDiag(msg: string, err?: any) {
+    console.warn(`[PPI Inspector] ${msg}`, err || '');
+    diagLogs.push(`[WARN] ${msg} ${err ? String(err) : ''}`);
+    if (diagLogs.length > 100) diagLogs.shift();
+    figma.ui.postMessage({ type: 'debug-logs', logs: diagLogs.join('\\n') });
+}
+
 // ── Utilities ──────────────────────────────────────────────────────────────
 
 const yieldToUI = (): Promise<void> => new Promise(resolve => setTimeout(resolve, 15));
@@ -128,21 +143,21 @@ async function findAllImageNodesAsync(nodes: readonly BaseNode[]): Promise<Scene
 
 async function calculateNodeData(node: SceneNode): Promise<ImageNodeData | null> {
     try {
-        console.log(`[PPI Inspector] Analyzing node: ${node.name} (${node.id})`);
+        logDiag(`Analyzing node: ${node.name} (${node.id})`);
         if (!('fills' in node) || node.fills === figma.mixed || !Array.isArray(node.fills)) {
-            console.warn(`[PPI Inspector] Skipping ${node.name}: No valid fills array (fills is mixed or missing)`);
+            warnDiag(`Skipping ${node.name}: No valid fills array (fills is mixed or missing)`);
             return null;
         }
 
         const fill = getTopVisibleImageFill(node.fills);
         if (!fill) {
-            console.warn(`[PPI Inspector] Skipping ${node.name}: getTopVisibleImageFill returned null (no visible IMAGE fill)`);
+            warnDiag(`Skipping ${node.name}: getTopVisibleImageFill returned null (no visible IMAGE fill)`);
             return null;
         }
 
         const image = figma.getImageByHash(fill.imageHash);
         if (!image) {
-            console.warn(`[PPI Inspector] Skipping ${node.name}: figma.getImageByHash returned null (broken image reference)`);
+            warnDiag(`Skipping ${node.name}: figma.getImageByHash returned null (broken image reference)`);
             return null;
         }
 
@@ -150,12 +165,12 @@ async function calculateNodeData(node: SceneNode): Promise<ImageNodeData | null>
         try {
             size = await image.getSizeAsync();
         } catch (e1) {
-            console.warn(`[PPI Inspector] getSizeAsync failed for ${node.name}, attempting getBytesAsync to force load...`);
+            warnDiag(`getSizeAsync failed for ${node.name}, attempting getBytesAsync to force load...`);
             try {
                 await image.getBytesAsync();
                 size = await image.getSizeAsync();
             } catch (e2) {
-                console.error(`[PPI Inspector] Failed to load image size for ${node.name} even after getBytesAsync.`, e2);
+                warnDiag(`Failed to load image size for ${node.name} even after getBytesAsync.`, e2);
                 throw e2;
             }
         }
@@ -227,16 +242,16 @@ async function checkSelection(): Promise<void> {
     }
 
     const imageNodes = findImageNodesInSelection(selection);
-    console.log(`[PPI Inspector] checkSelection: Selected ${selection.length} nodes. Found ${imageNodes.length} image nodes inside.`);
+    logDiag(`checkSelection: Selected ${selection.length} nodes. Found ${imageNodes.length} image nodes inside.`);
 
     if (imageNodes.length > 0 && imageNodes.length <= 50) {
-        console.log(`[PPI Inspector] checkSelection: Processing ${imageNodes.length} nodes...`);
+        logDiag(`checkSelection: Processing ${imageNodes.length} nodes...`);
         const images: ImageNodeData[] = [];
         for (const node of imageNodes) {
             const data = await calculateNodeData(node);
             if (data) images.push(data);
         }
-        console.log(`[PPI Inspector] checkSelection: Successfully calculated data for ${images.length} images.`);
+        logDiag(`checkSelection: Successfully calculated data for ${images.length} images.`);
         if (images.length > 0) {
             figma.ui.postMessage({
                 type: 'images-list',
@@ -248,10 +263,10 @@ async function checkSelection(): Promise<void> {
     }
 
     if (imageNodes.length === 0) {
-        console.log(`[PPI Inspector] checkSelection: 0 valid image nodes found. Clearing UI.`);
+        logDiag(`checkSelection: 0 valid image nodes found. Clearing UI.`);
         figma.ui.postMessage({ type: 'clear' });
     } else {
-        console.log(`[PPI Inspector] checkSelection: Found ${imageNodes.length} nodes (>50). Showing 'Scan Selection' button instead of auto-processing.`);
+        logDiag(`checkSelection: Found ${imageNodes.length} nodes (>50). Showing 'Scan Selection' button instead of auto-processing.`);
         // More than 50 images — update scan button context without auto-scan
         figma.ui.postMessage({ type: 'selection-context', hasSelection: true });
     }
