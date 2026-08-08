@@ -84,7 +84,10 @@
     .value { font-size: 11px; font-weight: 500; text-align: right; color: var(--ui3-text); letter-spacing: -0.01em; }
     
     .warning { color: var(--ui3-bg-danger); }
-    .caution { color: var(--ui3-bg-warning); }
+        .caution { color: var(--ui3-bg-warning); }
+    @media (prefers-color-scheme: light) {
+      .caution { color: var(--figma-color-bg-warning-secondary, var(--ui3-color-bg-warning-secondary)); }
+    }
     .success { color: var(--ui3-bg-success); }
     .ppi-value { font-weight: 600 !important; }
 
@@ -206,7 +209,10 @@
     .value { font-size: 11px; font-weight: 500; text-align: right; color: var(--ui3-text); letter-spacing: -0.01em; }
     
     .warning { color: var(--ui3-bg-danger); }
-    .caution { color: var(--ui3-bg-warning); }
+        .caution { color: var(--ui3-bg-warning); }
+    @media (prefers-color-scheme: light) {
+      .caution { color: var(--figma-color-bg-warning-secondary, var(--ui3-color-bg-warning-secondary)); }
+    }
     .success { color: var(--ui3-bg-success); }
     .ppi-value { font-weight: 600 !important; }
 
