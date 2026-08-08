@@ -212,20 +212,28 @@ async function checkSelection(): Promise<void> {
 
     const imageNodes = findImageNodesInSelection(selection);
 
-    if (imageNodes.length === 1) {
-        const data = await calculateNodeData(imageNodes[0]);
-        if (data) {
+    if (imageNodes.length > 0 && imageNodes.length <= 50) {
+        const images: ImageNodeData[] = [];
+        for (const node of imageNodes) {
+            const data = await calculateNodeData(node);
+            if (data) images.push(data);
+        }
+        if (images.length > 0) {
             figma.ui.postMessage({
                 type: 'images-list',
-                images: [data],
+                images,
                 selectedIds: selection.map(n => n.id),
             });
+            return;
         }
-        return;
     }
 
-    // 0 or multiple images — update scan button context without auto-scan
-    figma.ui.postMessage({ type: 'selection-context', hasSelection: true });
+    if (imageNodes.length === 0) {
+        figma.ui.postMessage({ type: 'clear' });
+    } else {
+        // More than 50 images — update scan button context without auto-scan
+        figma.ui.postMessage({ type: 'selection-context', hasSelection: true });
+    }
 }
 
 // ── Message Handlers ───────────────────────────────────────────────────────
