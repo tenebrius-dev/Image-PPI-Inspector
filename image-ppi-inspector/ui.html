@@ -291,6 +291,17 @@
     .checkbox-row input[type="checkbox"]:disabled { cursor: not-allowed; }
     .checkbox-row label:has(input[type="checkbox"]:disabled) { opacity: .5; cursor: not-allowed; }
     .checkbox-row input[type="checkbox"]:focus-visible { outline: 2px solid var(--ui3-border-selected); outline-offset: 1px; }
+
+    @media (prefers-color-scheme: dark) {
+      .checkbox-row input[type="checkbox"] {
+        background-color: #3A3A3A;
+        border-color: #616161;
+      }
+      .checkbox-row label:hover input[type="checkbox"]:not(:disabled) {
+        background-color: #454545;
+        border-color: #6A6A6A;
+      }
+    }
   </style>
 </head>
 <body>
