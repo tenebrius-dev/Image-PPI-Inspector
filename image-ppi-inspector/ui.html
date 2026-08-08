@@ -421,7 +421,7 @@
       // List rows
       let listContent = '';
       if (images.length === 0) {
-        listContent = `<div style="padding: 24px; text-align: center; color: var(--ui3-color-text-text-secondary); font-size: 11px;">No images in this category.</div>`;
+        listContent = `<div style="padding: 24px; text-align: center; color: var(--ui3-text-secondary); font-size: 11px;">No images in this category.</div>`;
       } else {
         listContent = images.map(img => {
           let rightSide = '';
@@ -477,7 +477,7 @@
       const maxH = img.printH * (img.ppi / state.targetPpi);
       const el = document.getElementById('maxPrintVal');
       if (el) {
-        el.innerHTML = `<span class="copy-part" title="Copy Max Width" onclick="copyValue('${fmt(maxW)}', 'Copied: ${fmt(maxW)}')">${fmt(maxW)}</span><span class="copy-sep" title="Copy full Max Print" onclick="copyValue('${fmt(maxW)} × ${fmt(maxH)} mm', 'Copied: ${fmt(maxW)} × ${fmt(maxH)} mm')">×</span><span class="copy-part" title="Copy Max Height" onclick="copyValue('${fmt(maxH)}', 'Copied: ${fmt(maxH)}')">${fmt(maxH)}</span> <span style="color: var(--ui3-color-text-text-secondary);">mm</span>`;
+        el.innerHTML = `<span class="copy-part" title="Copy Max Width" onclick="copyValue('${fmt(maxW)}', 'Copied: ${fmt(maxW)}')">${fmt(maxW)}</span><span class="copy-sep" title="Copy full Max Print" onclick="copyValue('${fmt(maxW)} × ${fmt(maxH)} mm', 'Copied: ${fmt(maxW)} × ${fmt(maxH)} mm')">×</span><span class="copy-part" title="Copy Max Height" onclick="copyValue('${fmt(maxH)}', 'Copied: ${fmt(maxH)}')">${fmt(maxH)}</span> <span style="color: var(--ui3-text-secondary);">mm</span>`;
       }
     };
 
@@ -507,7 +507,7 @@
 
       const ccIndicatorHtml = hasCC
         ? `<span class="value" style="color: var(--ui3-color-text-text-brand); font-weight: 600;">Applied</span>`
-        : `<span class="value" style="color: var(--ui3-color-text-text-secondary); font-weight: 500;">None</span>`;
+        : `<span class="value" style="color: var(--ui3-text-secondary); font-weight: 500;">None</span>`;
 
       const navSvgPrev = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="transform: scaleX(-1);"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.76754 5.52511C6.9628 5.32985 7.27938 5.32985 7.47465 5.52511L9.59596 7.64643L9.94952 7.99999L9.59596 8.35354L7.47465 10.4749C7.27938 10.6701 6.9628 10.6701 6.76754 10.4749C6.57228 10.2796 6.57228 9.96302 6.76754 9.76775L8.53531 7.99999L6.76754 6.23222C6.57228 6.03695 6.57228 5.72037 6.76754 5.52511Z" fill="currentColor" fill-opacity="0.9"/></svg>`;
       const navSvgNext = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.76754 5.52511C6.9628 5.32985 7.27938 5.32985 7.47465 5.52511L9.59596 7.64643L9.94952 7.99999L9.59596 8.35354L7.47465 10.4749C7.27938 10.6701 6.9628 10.6701 6.76754 10.4749C6.57228 10.2796 6.57228 9.96302 6.76754 9.76775L8.53531 7.99999L6.76754 6.23222C6.57228 6.03695 6.57228 5.72037 6.76754 5.52511Z" fill="currentColor" fill-opacity="0.9"/></svg>`;
@@ -541,7 +541,7 @@
                 <span class="copy-part" title="Copy Current Width" onclick="copyValue('${fmt(cW)}', 'Copied: ${fmt(cW)}')">${fmt(cW)}</span>
                 <span class="copy-sep" title="Copy full Current Size" onclick="copyValue('${fmt(cW)} × ${fmt(cH)} ${unit}', 'Copied: ${fmt(cW)} × ${fmt(cH)} ${unit}')">×</span>
                 <span class="copy-part" title="Copy Current Height" onclick="copyValue('${fmt(cH)}', 'Copied: ${fmt(cH)}')">${fmt(cH)}</span>
-                <span style="color: var(--ui3-color-text-text-secondary);">${unit}</span>
+                <span style="color: var(--ui3-text-secondary);">${unit}</span>
               </span>
             </div>
 
@@ -559,18 +559,18 @@
                 <span class="copy-part" title="Copy Original Width" onclick="copyValue('${fmt(oW)}', 'Copied: ${fmt(oW)}')">${fmt(oW)}</span>
                 <span class="copy-sep" title="Copy full Original Size" onclick="copyValue('${fmt(oW)} × ${fmt(oH)} ${unit}', 'Copied: ${fmt(oW)} × ${fmt(oH)} ${unit}')">×</span>
                 <span class="copy-part" title="Copy Original Height" onclick="copyValue('${fmt(oH)}', 'Copied: ${fmt(oH)}')">${fmt(oH)}</span>
-                <span style="color: var(--ui3-color-text-text-secondary);">${unit}</span>
+                <span style="color: var(--ui3-text-secondary);">${unit}</span>
               </span>
             </div>
 
             <div class="row"><span class="label">Crop Positioning</span>
               <span class="value">
-                <span style="color: var(--ui3-color-text-text-secondary); font-weight: 400;">X:</span>
+                <span style="color: var(--ui3-text-secondary); font-weight: 400;">X:</span>
                 <span class="copy-part" title="Copy X" onclick="copyValue('${fmt(pX)}', 'Copied: ${fmt(pX)}')">${fmt(pX)}</span>
                 <span class="copy-sep" title="Copy full Crop Positioning" onclick="copyValue('X: ${fmt(pX)} ${unit}, Y: ${fmt(pY)} ${unit}', 'Copied: X: ${fmt(pX)} ${unit}, Y: ${fmt(pY)} ${unit}')">,</span>
-                <span style="color: var(--ui3-color-text-text-secondary); font-weight: 400;">Y:</span>
+                <span style="color: var(--ui3-text-secondary); font-weight: 400;">Y:</span>
                 <span class="copy-part" title="Copy Y" onclick="copyValue('${fmt(pY)}', 'Copied: ${fmt(pY)}')">${fmt(pY)}</span>
-                <span style="color: var(--ui3-color-text-text-secondary); font-weight: 400;">${unit}</span>
+                <span style="color: var(--ui3-text-secondary); font-weight: 400;">${unit}</span>
               </span>
             </div>
 
@@ -595,7 +595,7 @@
                 <span class="copy-part" title="Copy Max Width" onclick="copyValue('${fmt(maxW)}', 'Copied: ${fmt(maxW)}')">${fmt(maxW)}</span>
                 <span class="copy-sep" title="Copy full Max Print" onclick="copyValue('${fmt(maxW)} × ${fmt(maxH)} mm', 'Copied: ${fmt(maxW)} × ${fmt(maxH)} mm')">×</span>
                 <span class="copy-part" title="Copy Max Height" onclick="copyValue('${fmt(maxH)}', 'Copied: ${fmt(maxH)}')">${fmt(maxH)}</span>
-                <span style="color: var(--ui3-color-text-text-secondary);">mm</span>
+                <span style="color: var(--ui3-text-secondary);">mm</span>
               </span>
             </div>
             <button id="resizeBtn">Resize to Target PPI</button>
