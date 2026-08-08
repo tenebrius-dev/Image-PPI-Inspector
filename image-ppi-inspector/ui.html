@@ -667,10 +667,16 @@
         const id = msg.images[0].id;
         const idx = state.images.findIndex(img => img.id === id);
         if (idx !== -1) {
+          let shouldRender = false;
+          if (state.index !== idx) {
+            state.index = idx;
+            shouldRender = true;
+          }
           if (JSON.stringify(state.images[idx]) !== JSON.stringify(msg.images[0])) {
             state.images[idx] = msg.images[0];
-            renderImage();
+            shouldRender = true;
           }
+          if (shouldRender) renderImage();
           return;
         }
       }
