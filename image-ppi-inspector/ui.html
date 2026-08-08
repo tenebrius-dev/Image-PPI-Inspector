@@ -494,6 +494,7 @@
     };
 
     function renderImage() {
+      try {
       const app = document.getElementById('app');
       if (state.images.length === 0) { renderEmpty(); return; }
       const img = state.images[state.index];
@@ -654,6 +655,9 @@
         parent.postMessage({ pluginMessage: { type: 'resize', targetPpi: parseFloat(document.getElementById('targetPpi').value), nodeId: img.id, origW: img.origW, aspectRatio: img.aspectRatio } }, '*');
 
       updateSize(true);
+      } catch (err) {
+        parent.postMessage({ pluginMessage: { type: 'debug-log-ui', log: "UI Error in renderImage: " + err.message + "\\n" + err.stack } }, '*');
+      }
     }
     // ── Message Handlers ────────────────────────────────────────────────────
 

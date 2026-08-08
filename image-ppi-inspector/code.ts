@@ -445,6 +445,7 @@ figma.ui.onmessage = async (msg: any) => {
         case 'cancel-scan':       cancelScanRequested = true; break;
         case 'focus-node':        await handleFocusNode(msg.nodeId); break;
         case 'restore-selection': await handleRestoreSelection(msg.nodeIds); break;
+        case 'debug-log-ui':      warnDiag(msg.log); break;
         case 'scan':              await handleScan(msg); break;
         case 'resize':            await handleResize(msg); break;
         case 'download-image':    await handleDownloadImage(msg); break;
