@@ -1,13 +1,61 @@
-// Инициализация UI
+// ── Constants ──────────────────────────────────────────────────────────────
+
+const FIGMA_PX_PER_INCH = 72;
+const LOW_PPI_THRESHOLD = 250;
+const TEMP_NODE_OFFSET_X = -20000;
+const YIELD_EVERY_N_NODES = 300;
+
+// ── Types ──────────────────────────────────────────────────────────────────
+
+interface ImageNodeData {
+    id: string;
+    name: string;
+    ppi: number;
+    posX: number;
+    posY: number;
+    curW: number;
+    curH: number;
+    origW: number;
+    origH: number;
+    printW: number;
+    printH: number;
+    resScaleX: number;
+    resScaleY: number;
+    aspectRatio: number;
+    hasCC: boolean;
+}
+
+interface ScanMessage {
+    type: 'scan';
+    scope: 'selection' | 'page' | 'project';
+    includeCC: boolean;
+}
+
+interface ResizeMessage {
+    type: 'resize';
+    nodeId: string;
+    origW: number;
+    targetPpi: number;
+    aspectRatio: number;
+}
+
+interface DownloadMessage {
+    type: 'download-image' | 'download-image-cc';
+    nodeId: string;
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+
 figma.showUI(__html__, { width: 300, height: 500, themeColors: true });
-
-figma.skipInvisibleInstanceChildren = true; 
-
-const yieldToUI = () => new Promise(resolve => setTimeout(resolve, 15));
+figma.skipInvisibleInstanceChildren = true;
 
 let cancelScanRequested = false;
 
-function clone(val: any): any {
+// ── Utilities ──────────────────────────────────────────────────────────────
+
+const yieldToUI = (): Promise<void> => new Promise(resolve => setTimeout(resolve, 15));
+
+function clone<T>(val: T): T {
     return JSON.parse(JSON.stringify(val));
 }
 
@@ -22,116 +70,115 @@ function getTopVisibleImageFill(fills: readonly Paint[] | typeof figma.mixed): I
     return null;
 }
 
-function findAllImageNodes(nodes: readonly SceneNode[]): SceneNode[] {
-    let imageNodes: SceneNode[] = [];
-    for (const node of nodes) {
-        if (!node.visible) continue;
-        if ('fills' in node && getTopVisibleImageFill(node.fills)) {
-            imageNodes.push(node);
-        }
-        if ('findAll' in node) {
-            const children = node.findAll(child => {
-                return child.visible && 
-                       'fills' in child && 
-                       getTopVisibleImageFill(child.fills) !== null;
-            });
-            imageNodes = imageNodes.concat(children as SceneNode[]);
-        }
-    }
-    return imageNodes;
+function hasColorCorrection(fill: ImagePaint): boolean {
+    if (!fill.filters) return false;
+    const f = fill.filters;
+    return (
+        Math.abs(f.exposure    ?? 0) > 0.001 ||
+        Math.abs(f.contrast    ?? 0) > 0.001 ||
+        Math.abs(f.saturation  ?? 0) > 0.001 ||
+        Math.abs(f.temperature ?? 0) > 0.001 ||
+        Math.abs(f.tint        ?? 0) > 0.001 ||
+        Math.abs(f.highlights  ?? 0) > 0.001 ||
+        Math.abs(f.shadows     ?? 0) > 0.001
+    );
 }
 
+// ── Node Traversal ─────────────────────────────────────────────────────────
+
+// Synchronous shallow scan — used only for single-selection auto-preview
+function findImageNodesInSelection(nodes: readonly SceneNode[]): SceneNode[] {
+    const result: SceneNode[] = [];
+    for (const node of nodes) {
+        if (!node.visible) continue;
+        if ('fills' in node && getTopVisibleImageFill(node.fills)) result.push(node);
+        if ('findAll' in node) {
+            result.push(...(node.findAll(child =>
+                child.visible && 'fills' in child && getTopVisibleImageFill(child.fills) !== null
+            ) as SceneNode[]));
+        }
+    }
+    return result;
+}
+
+// Async deep scan — used for full page/project scan with cancellation support
 async function findAllImageNodesAsync(nodes: readonly BaseNode[]): Promise<SceneNode[]> {
-    let imageNodes: SceneNode[] = [];
-    let counter = 0; 
-    async function traverse(currentNodes: readonly BaseNode[]) {
+    const imageNodes: SceneNode[] = [];
+    let counter = 0;
+
+    async function traverse(currentNodes: readonly BaseNode[]): Promise<void> {
         for (const node of currentNodes) {
             if (cancelScanRequested) return;
             if ('visible' in node && !node.visible) continue;
-            
             if ('fills' in node && getTopVisibleImageFill(node.fills)) {
                 imageNodes.push(node as SceneNode);
             }
             if ('children' in node) {
-                await traverse((node as any).children);
+                await traverse((node as ChildrenMixin).children);
             }
-            counter++;
-            if (counter % 300 === 0) await yieldToUI(); 
+            if (++counter % YIELD_EVERY_N_NODES === 0) await yieldToUI();
         }
     }
+
     await traverse(nodes);
     return imageNodes;
 }
 
-async function calculateNodeData(node: SceneNode): Promise<any | null> {
+// ── Core Logic ─────────────────────────────────────────────────────────────
+
+async function calculateNodeData(node: SceneNode): Promise<ImageNodeData | null> {
     try {
         if (!('fills' in node) || node.fills === figma.mixed || !Array.isArray(node.fills)) return null;
-        
+
         const fill = getTopVisibleImageFill(node.fills);
         if (!fill) return null;
 
         const image = figma.getImageByHash(fill.imageHash);
         if (!image) return null;
 
-        let size;
+        let size: { width: number; height: number };
         try {
             size = await image.getSizeAsync();
-        } catch (e) {
-            await image.getBytesAsync();
+        } catch {
+            await image.getBytesAsync(); // force load into memory
             size = await image.getSizeAsync();
         }
 
         const transform = fill.imageTransform;
         const scaleX = transform ? Math.abs(transform[0][0]) : 1;
         const scaleY = transform ? Math.abs(transform[1][1]) : 1;
-        
-        const nodeWidth = Math.max(node.width, 1);
+
+        const nodeWidth  = Math.max(node.width,  1);
         const nodeHeight = Math.max(node.height, 1);
 
         const t00 = transform ? transform[0][0] : 1;
         const t11 = transform ? transform[1][1] : 1;
         const t02 = transform ? transform[0][2] : 0;
         const t12 = transform ? transform[1][2] : 0;
-        
-        const posX = t00 !== 0 ? (-t02 / t00) * nodeWidth : 0;
+
+        const posX = t00 !== 0 ? (-t02 / t00) * nodeWidth  : 0;
         const posY = t11 !== 0 ? (-t12 / t11) * nodeHeight : 0;
 
-        const ppiX = size.width / (nodeWidth / scaleX / 72);
-        const ppiY = size.height / (nodeHeight / scaleY / 72);
-        const stablePPI = Math.round((ppiX + ppiY) / 2);
+        const ppiX = size.width  / (nodeWidth  / scaleX / FIGMA_PX_PER_INCH);
+        const ppiY = size.height / (nodeHeight / scaleY / FIGMA_PX_PER_INCH);
+        const ppi  = Math.round((ppiX + ppiY) / 2);
 
-        let hasCC = false;
-        if (fill.filters) {
-            const f = fill.filters;
-            if (
-                Math.abs(f.exposure || 0) > 0.001 || 
-                Math.abs(f.contrast || 0) > 0.001 || 
-                Math.abs(f.saturation || 0) > 0.001 || 
-                Math.abs(f.temperature || 0) > 0.001 || 
-                Math.abs(f.tint || 0) > 0.001 || 
-                Math.abs(f.highlights || 0) > 0.001 || 
-                Math.abs(f.shadows || 0) > 0.001
-            ) {
-                hasCC = true;
-            }
-        }
-        
         return {
             id: node.id,
             name: node.name,
-            ppi: stablePPI,
-            posX: posX,
-            posY: posY,
-            resScaleX: (72 / ppiX) * 100,
-            resScaleY: (72 / ppiY) * 100,
+            ppi,
+            posX,
+            posY,
+            resScaleX: (FIGMA_PX_PER_INCH / ppiX) * 100,
+            resScaleY: (FIGMA_PX_PER_INCH / ppiY) * 100,
             curW: nodeWidth,
             curH: nodeHeight,
             origW: size.width,
             origH: size.height,
-            printW: (nodeWidth / 72) * 25.4,
-            printH: (nodeHeight / 72) * 25.4,
+            printW: (nodeWidth  / FIGMA_PX_PER_INCH) * 25.4,
+            printH: (nodeHeight / FIGMA_PX_PER_INCH) * 25.4,
             aspectRatio: nodeHeight / nodeWidth,
-            hasCC: hasCC
+            hasCC: hasColorCorrection(fill),
         };
     } catch (err) {
         console.error(`Error processing node ${node.id}`, err);
@@ -139,234 +186,224 @@ async function calculateNodeData(node: SceneNode): Promise<any | null> {
     }
 }
 
-async function checkSelection() {
+/** Shared helper: resolves a node by ID and returns its top image fill + image object. Throws on any error. */
+async function getImageFillFromNode(nodeId: string): Promise<{ node: SceneNode; fill: ImagePaint; image: Image }> {
+    const node = await figma.getNodeByIdAsync(nodeId) as SceneNode;
+    if (!node) throw new Error('Layer not found.');
+    if (!('fills' in node) || node.fills === figma.mixed || !Array.isArray(node.fills)) {
+        throw new Error('No valid fills found.');
+    }
+    const fill = getTopVisibleImageFill(node.fills);
+    if (!fill?.imageHash) throw new Error('No image fill found.');
+    const image = figma.getImageByHash(fill.imageHash);
+    if (!image) throw new Error('Image not found in Figma memory.');
+    return { node, fill, image };
+}
+
+// ── Selection Handling ─────────────────────────────────────────────────────
+
+async function checkSelection(): Promise<void> {
     const selection = figma.currentPage.selection;
-    
+
     if (selection.length === 0) {
-        figma.ui.postMessage({ type: "clear" });
+        figma.ui.postMessage({ type: 'clear' });
         return;
     }
-    
-    const imageNodes = findAllImageNodes(selection);
-    
+
+    const imageNodes = findImageNodesInSelection(selection);
+
     if (imageNodes.length === 1) {
-        // Одно изображение — показываем детали автоматически
         const data = await calculateNodeData(imageNodes[0]);
         if (data) {
-            figma.ui.postMessage({ 
-                type: "images-list", 
+            figma.ui.postMessage({
+                type: 'images-list',
                 images: [data],
-                selectedIds: selection.map(node => node.id)
+                selectedIds: selection.map(n => n.id),
             });
         }
         return;
     }
-    
-    // 0 или несколько изображений — не сканируем автоматически, обновляем кнопку в UI
-    figma.ui.postMessage({ type: "selection-context", hasSelection: true });
+
+    // 0 or multiple images — update scan button context without auto-scan
+    figma.ui.postMessage({ type: 'selection-context', hasSelection: true });
 }
 
-figma.on("selectionchange", checkSelection);
+// ── Message Handlers ───────────────────────────────────────────────────────
+
+async function handleScan(msg: ScanMessage): Promise<void> {
+    cancelScanRequested = false;
+    await yieldToUI();
+
+    const scopeNodes =
+        msg.scope === 'selection' ? figma.currentPage.selection :
+        msg.scope === 'project'   ? figma.root.children :
+                                    figma.currentPage.children;
+
+    const allImageNodes = await findAllImageNodesAsync(scopeNodes);
+
+    if (cancelScanRequested) {
+        figma.ui.postMessage({ type: 'scan-cancelled' });
+        return;
+    }
+
+    const total = allImageNodes.length;
+
+    if (total === 0) {
+        figma.ui.postMessage({ type: 'scan-results', images: [], ccImages: msg.includeCC ? [] : null, total: 0 });
+        return;
+    }
+
+    const resultsPPI: ImageNodeData[] = [];
+    const resultsCC:  ImageNodeData[] = [];
+
+    for (let i = 0; i < total; i++) {
+        if (cancelScanRequested) {
+            figma.ui.postMessage({ type: 'scan-cancelled' });
+            return;
+        }
+
+        const data = await calculateNodeData(allImageNodes[i]);
+        if (data) {
+            if (data.ppi < LOW_PPI_THRESHOLD) resultsPPI.push(data);
+            if (msg.includeCC && data.hasCC)   resultsCC.push(data);
+        }
+
+        if (i % 2 === 0 || i === total - 1) {
+            figma.ui.postMessage({ type: 'scan-progress', current: i + 1, total });
+            await yieldToUI();
+        }
+    }
+
+    if (cancelScanRequested) {
+        figma.ui.postMessage({ type: 'scan-cancelled' });
+        return;
+    }
+
+    resultsPPI.sort((a, b) => a.ppi - b.ppi);
+    figma.ui.postMessage({
+        type: 'scan-results',
+        images: resultsPPI,
+        ccImages: msg.includeCC ? resultsCC : null,
+        total,
+    });
+}
+
+async function handleResize(msg: ResizeMessage): Promise<void> {
+    try {
+        const node = await figma.getNodeByIdAsync(msg.nodeId) as SceneNode;
+        if (node && 'resize' in node) {
+            const newWidth = (msg.origW / msg.targetPpi) * FIGMA_PX_PER_INCH;
+            node.resize(newWidth, newWidth * msg.aspectRatio);
+            checkSelection();
+            figma.notify(`✅ Resized to ${msg.targetPpi} PPI`);
+        } else {
+            figma.notify('❌ Cannot resize this node type.');
+        }
+    } catch (e) {
+        console.error('Resize failed', e);
+    }
+}
+
+async function handleDownloadImage(msg: DownloadMessage): Promise<void> {
+    try {
+        const { image, node } = await getImageFillFromNode(msg.nodeId);
+        const bytes = await image.getBytesAsync();
+        figma.ui.postMessage({ type: 'download-file', bytes, name: node.name });
+    } catch (err: any) {
+        figma.notify('❌ ' + err.message);
+    }
+}
+
+async function handleDownloadCC(msg: DownloadMessage): Promise<void> {
+    let tempRect: RectangleNode | null = null;
+    try {
+        const { fill, image, node } = await getImageFillFromNode(msg.nodeId);
+        const size = await image.getSizeAsync();
+
+        // Create a temporary node directly on the page to avoid clipping, masks,
+        // and parent frame opacity that would affect the export result.
+        tempRect = figma.createRectangle();
+        tempRect.name = 'Export_Temp';
+        tempRect.resize(size.width, size.height);
+        tempRect.x = node.x + TEMP_NODE_OFFSET_X;
+        tempRect.y = node.y;
+
+        const { imageTransform: _removed, ...restFill } = clone(fill);
+        const newFill: ImagePaint = { ...restFill, scaleMode: 'FILL' };
+        tempRect.fills = [newFill];
+
+
+        figma.currentPage.appendChild(tempRect);
+
+        // Export at native pixel resolution with BASIC resampling (no interpolation)
+        const bytes = await tempRect.exportAsync({
+            format: 'PNG',
+            constraint: { type: 'SCALE', value: size.width / tempRect.width },
+            imageResampling: 'BASIC',
+        } as any);
+
+        figma.ui.postMessage({ type: 'download-file', bytes, name: node.name + '_CC' });
+    } catch (err: any) {
+        figma.notify('Error downloading CC image: ' + err.message);
+    } finally {
+        // Guaranteed cleanup — even if an error occurs mid-way
+        tempRect?.remove();
+    }
+}
+
+async function handleFocusNode(nodeId: string): Promise<void> {
+    try {
+        const node = await figma.getNodeByIdAsync(nodeId) as SceneNode;
+        if (node) {
+            figma.currentPage.selection = [node];
+            figma.viewport.scrollAndZoomIntoView([node]);
+        }
+    } catch (e) {
+        console.error('Failed to focus node', e);
+    }
+}
+
+async function handleRestoreSelection(nodeIds: string[]): Promise<void> {
+    try {
+        const nodes: SceneNode[] = [];
+        for (const id of nodeIds) {
+            const node = await figma.getNodeByIdAsync(id);
+            if (node) nodes.push(node as SceneNode);
+        }
+        figma.currentPage.selection = nodes;
+    } catch (e) {
+        console.error('Failed to restore initial selection', e);
+    }
+}
+
+// ── Event Listeners ────────────────────────────────────────────────────────
+
+figma.on('selectionchange', checkSelection);
 
 figma.loadAllPagesAsync().then(() => {
-    figma.on("documentchange", (event) => {
-        for (const change of event.documentChanges) {
-            if (change.type === 'PROPERTY_CHANGE') {
-                const isSelected = figma.currentPage.selection.some(node => node.id === change.id);
-                if (isSelected) {
-                    checkSelection();
-                    break;
-                }
-            }
-        }
+    figma.on('documentchange', event => {
+        const selectionIds = new Set(figma.currentPage.selection.map(n => n.id));
+        const affectsSelection = event.documentChanges.some(
+            c => c.type === 'PROPERTY_CHANGE' && selectionIds.has(c.id)
+        );
+        if (affectsSelection) checkSelection();
     });
 });
 
 checkSelection();
 
-figma.ui.onmessage = async (msg) => {
-    if (msg.type === 'resize-window') {
-        figma.ui.resize(msg.width, Math.round(msg.height));
-    }
-    
-    if (msg.type === 'notify' && msg.msg) {
-        figma.notify(msg.msg);
-    }
-    
-    if (msg.type === 'focus-node' && msg.nodeId) {
-        try {
-            const node = await figma.getNodeByIdAsync(msg.nodeId) as SceneNode;
-            if (node) {
-                figma.currentPage.selection = [node];
-                figma.viewport.scrollAndZoomIntoView([node]);
-            }
-        } catch (e) {
-            console.error("Failed to focus node", e);
-        }
-    }
-    
-    if (msg.type === 'restore-selection' && msg.nodeIds) {
-        try {
-            const nodes = [];
-            for (const id of msg.nodeIds) {
-                const node = await figma.getNodeByIdAsync(id);
-                if (node) nodes.push(node);
-            }
-            figma.currentPage.selection = nodes;
-        } catch (e) {
-            console.error("Failed to restore initial selection", e);
-        }
-    }
+// ── Message Dispatcher ─────────────────────────────────────────────────────
 
-    if (msg.type === 'cancel-scan') {
-        cancelScanRequested = true;
-    }
-    
-    if (msg.type === 'scan') {
-        cancelScanRequested = false;
-        await yieldToUI();
-
-        let nodesToScan = msg.scope === 'selection' ? figma.currentPage.selection : msg.scope === 'project' ? figma.root.children : figma.currentPage.children;
-        const allImageNodes = await findAllImageNodesAsync(nodesToScan);
-        
-        if (cancelScanRequested) {
-            figma.ui.postMessage({ type: "scan-cancelled" });
-            return;
-        }
-
-        const total = allImageNodes.length;
-
-        if (total === 0) {
-            figma.ui.postMessage({ type: "scan-results", images: [], ccImages: msg.includeCC ? [] : null, total: 0 });
-            return;
-        }
-
-        const resultsPPI = [];
-        const resultsCC = [];
-
-        for (let i = 0; i < total; i++) {
-            if (cancelScanRequested) {
-                figma.ui.postMessage({ type: "scan-cancelled" });
-                return;
-            }
-
-            const node = allImageNodes[i];
-            const data = await calculateNodeData(node);
-            
-            if (data) {
-                if (data.ppi < 250) resultsPPI.push(data);
-                if (msg.includeCC && data.hasCC) resultsCC.push(data);
-            }
-
-            if (i % 2 === 0 || i === total - 1) {
-                figma.ui.postMessage({ type: "scan-progress", current: i + 1, total: total });
-                await yieldToUI(); 
-            }
-        }
-
-        if (cancelScanRequested) {
-            figma.ui.postMessage({ type: "scan-cancelled" });
-            return;
-        }
-
-        resultsPPI.sort((a, b) => a.ppi - b.ppi);
-        figma.ui.postMessage({ 
-            type: "scan-results", 
-            images: resultsPPI, 
-            ccImages: msg.includeCC ? resultsCC : null,
-            total: total 
-        });
-    }
-    
-    if (msg.type === 'resize' && msg.nodeId) {
-        try {
-            const node = await figma.getNodeByIdAsync(msg.nodeId) as SceneNode;
-            if (node && 'resize' in node) {
-                const newWidth = (msg.origW / msg.targetPpi) * 72;
-                node.resize(newWidth, newWidth * msg.aspectRatio);
-                checkSelection();
-                figma.notify(`✅ Resized to ${msg.targetPpi} PPI`);
-            } else {
-                figma.notify("❌ Cannot resize this node type.");
-            }
-        } catch (e) {
-            console.error("Resize failed", e);
-        }
-    }
-    
-    if (msg.type === 'download-image' && msg.nodeId) {
-        try {
-            const node = await figma.getNodeByIdAsync(msg.nodeId) as SceneNode;
-            if (!node) throw new Error("Layer not found.");
-
-            if (!('fills' in node) || node.fills === figma.mixed || !Array.isArray(node.fills)) {
-                throw new Error("No valid fills found.");
-            }
-
-            const fill = getTopVisibleImageFill(node.fills);
-            if (!fill || !fill.imageHash) throw new Error("No image fill found.");
-
-            const image = figma.getImageByHash(fill.imageHash);
-            if (!image) throw new Error("Image not found in Figma memory.");
-
-            const bytes = await image.getBytesAsync();
-            figma.ui.postMessage({ type: 'download-file', bytes: bytes, name: node.name });
-            
-        } catch (err: any) {
-            figma.notify("❌ " + err.message);
-        }
-    }
-
-    if (msg.type === 'download-image-cc' && msg.nodeId) {
-        let tempRect: RectangleNode | null = null;
-        try {
-            const node = await figma.getNodeByIdAsync(msg.nodeId) as SceneNode;
-            if (!node) throw new Error("Layer not found.");
-
-            if (!('fills' in node) || node.fills === figma.mixed || !Array.isArray(node.fills)) {
-                throw new Error("No valid fills found.");
-            }
-            
-            const originalFill = getTopVisibleImageFill(node.fills);
-            if (!originalFill || !originalFill.imageHash) throw new Error("No image fill.");
-            
-            const image = figma.getImageByHash(originalFill.imageHash);
-            if (!image) throw new Error("No image.");
-
-            const size = await image.getSizeAsync();
-            
-            // Временная нода для рендера
-            tempRect = figma.createRectangle();
-            tempRect.name = "Export_Temp";
-            tempRect.resize(size.width, size.height);
-            tempRect.x = node.x - 20000;
-            tempRect.y = node.y;
-            
-            const newFill = clone(originalFill);
-            newFill.scaleMode = 'FILL';
-            delete newFill.imageTransform;
-            
-            tempRect.fills = [newFill];
-
-            // Добавляем строго на страницу, чтобы избежать обрезки (clipping), масок и прозрачности родительских фреймов
-            figma.currentPage.appendChild(tempRect);
-
-            const exportScale = size.width / tempRect.width;
-
-            // Подставляем формат ресамплинга "BASIC", который эквивалентен отключению интерполяции
-            const exportSettings: any = { 
-                format: 'PNG',
-                constraint: { type: 'SCALE', value: exportScale },
-                imageResampling: 'BASIC'
-            };
-
-            const bytes = await tempRect.exportAsync(exportSettings);
-            figma.ui.postMessage({ type: 'download-file', bytes: bytes, name: node.name + "_CC" });
-        } catch (err: any) {
-            figma.notify("Error downloading CC image: " + err.message);
-        } finally {
-            // Гарантируем удаление временной ноды даже при ошибке
-            if (tempRect) tempRect.remove();
-        }
+figma.ui.onmessage = async (msg: any) => {
+    switch (msg.type) {
+        case 'resize-window':     figma.ui.resize(msg.width, Math.round(msg.height)); break;
+        case 'notify':            if (msg.msg) figma.notify(msg.msg); break;
+        case 'cancel-scan':       cancelScanRequested = true; break;
+        case 'focus-node':        await handleFocusNode(msg.nodeId); break;
+        case 'restore-selection': await handleRestoreSelection(msg.nodeIds); break;
+        case 'scan':              await handleScan(msg); break;
+        case 'resize':            await handleResize(msg); break;
+        case 'download-image':    await handleDownloadImage(msg); break;
+        case 'download-image-cc': await handleDownloadCC(msg); break;
     }
 };
