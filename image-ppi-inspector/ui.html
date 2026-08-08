@@ -368,7 +368,7 @@
       app.innerHTML = `
         <div class="empty-state">
           <div class="empty-state-content">
-            <div style="color: var(--ui3-color-text-text-brand); font-weight: 500;" id="scan-status">Preparing scan...</div>
+            <div style="color: var(--ui3-text-brand); font-weight: 500;" id="scan-status">Preparing scan...</div>
             <div class="progress-container"><div class="progress-bar" id="pb"></div></div>
             <div style="font-size: 10px; margin-top: 4px;" id="scan-count">0 / 0</div>
           </div>
@@ -426,7 +426,7 @@
         listContent = images.map(img => {
           let rightSide = '';
           if (tab === 'cc') {
-            rightSide = `<div class="scan-item-ppi"><span style="background: rgba(13, 153, 255, 0.1); color: var(--ui3-color-text-text-brand); padding: 2px 6px; border-radius: 4px; font-weight: 600;">CC</span></div>`;
+            rightSide = `<div class="scan-item-ppi"><span style="background: var(--ui3-bg-selected); color: var(--ui3-text-brand); padding: 2px 6px; border-radius: 4px; font-weight: 600;">CC</span></div>`;
           } else {
             const ppiClass = img.ppi < 250 ? 'warning' : (img.ppi < 300 ? 'caution' : 'success');
             rightSide = `<div class="scan-item-ppi ${ppiClass}">${fmt(img.ppi)} PPI</div>`;
@@ -443,7 +443,7 @@
       app.innerHTML = `
         <div class="toolbar" style="display: grid; grid-template-columns: 1fr auto 1fr;">
           <div style="display: flex; align-items: center;">${leftAction}</div>
-          <div style="display: flex; align-items: center; justify-content: center; gap: 4px;"><span class="counter" style="font-weight: 500; color: var(--ui3-color-text-text-default);">${title}</span>${subtitle}</div>
+          <div style="display: flex; align-items: center; justify-content: center; gap: 4px;"><span class="counter" style="font-weight: 500; color: var(--ui3-text);">${title}</span>${subtitle}</div>
           <div></div>
         </div>
         ${tabsHtml}
@@ -506,7 +506,7 @@
       const hasCC    = Boolean(img.hasCC);
 
       const ccIndicatorHtml = hasCC
-        ? `<span class="value" style="color: var(--ui3-color-text-text-brand); font-weight: 600;">Applied</span>`
+        ? `<span class="value" style="color: var(--ui3-text-brand); font-weight: 600;">Applied</span>`
         : `<span class="value" style="color: var(--ui3-text-secondary); font-weight: 500;">None</span>`;
 
       const navSvgPrev = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="transform: scaleX(-1);"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.76754 5.52511C6.9628 5.32985 7.27938 5.32985 7.47465 5.52511L9.59596 7.64643L9.94952 7.99999L9.59596 8.35354L7.47465 10.4749C7.27938 10.6701 6.9628 10.6701 6.76754 10.4749C6.57228 10.2796 6.57228 9.96302 6.76754 9.76775L8.53531 7.99999L6.76754 6.23222C6.57228 6.03695 6.57228 5.72037 6.76754 5.52511Z" fill="currentColor" fill-opacity="0.9"/></svg>`;
