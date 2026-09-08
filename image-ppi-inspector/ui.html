@@ -1520,17 +1520,35 @@ jscolorengine/src/Transform.js:
       }
     }
 
-    function copyValue(value, toastMsg) {
+    function legacyCopy(value) {
       const textarea = document.createElement('textarea');
       textarea.value = value;
       textarea.style.position = 'fixed'; textarea.style.opacity = '0';
       document.body.appendChild(textarea); textarea.select(); document.execCommand('copy'); document.body.removeChild(textarea);
-      parent.postMessage({ pluginMessage: { type: 'notify', msg: toastMsg } }, '*');
+    }
+
+    function copyValue(value, toastMsg) {
+      const doToast = () => parent.postMessage({ pluginMessage: { type: 'notify', msg: toastMsg } }, '*');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(value).then(doToast, () => { legacyCopy(value); doToast(); });
+      } else {
+        legacyCopy(value); doToast();
+      }
     }
 
     window.handleCopy = function(e, value, label) {
       e.stopPropagation(); copyValue(value, `Copied: ${value}`);
     };
+
+    /** Shallow equality check for flat objects — avoids costly JSON.stringify round-trips */
+    function shallowEqual(a, b) {
+      if (a === b) return true;
+      if (!a || !b) return false;
+      const ka = Object.keys(a), kb = Object.keys(b);
+      if (ka.length !== kb.length) return false;
+      for (const k of ka) { if (a[k] !== b[k]) return false; }
+      return true;
+    }
     
     
     window.setUnit = function(newUnit) {
@@ -1699,10 +1717,148 @@ jscolorengine/src/Transform.js:
       const maxW = img.printW * (img.ppi / state.targetPpi);
       const maxH = img.printH * (img.ppi / state.targetPpi);
       const el = document.getElementById('maxPrintVal');
-      if (el) {
-        el.innerHTML = `<span class="copy-part" title="Copy Max Width" onclick="copyValue('${fmt(maxW)}', 'Copied: ${fmt(maxW)}')">${fmt(maxW)}</span><span class="copy-sep" title="Copy full Max Print" onclick="copyValue('${fmt(maxW)} × ${fmt(maxH)} mm', 'Copied: ${fmt(maxW)} × ${fmt(maxH)} mm')">×</span><span class="copy-part" title="Copy Max Height" onclick="copyValue('${fmt(maxH)}', 'Copied: ${fmt(maxH)}')">${fmt(maxH)}</span> <span style="color: var(--ui3-text-secondary);">mm</span>`;
-      }
+      if (el) el.innerHTML = renderDimensionMm(maxW, maxH, 'Max Print');
     };
+
+    /**
+     * Renders a W×H dimension row value with individual + combined copy buttons.
+     * @param {number} w - width
+     * @param {number} h - height
+     * @param {string} unit - unit label (px/mm)
+     * @param {string} label - label prefix for copy tooltips (e.g. 'Original', 'Current')
+     */
+    function renderDimension(w, h, unit, label) {
+      const wStr = fmt(w), hStr = fmt(h);
+      const fullStr = `${wStr} × ${hStr} ${unit}`;
+      return `
+        <span class="copy-part" title="Copy ${label} Width" onclick="copyValue('${wStr}', 'Copied: ${wStr}')">${wStr}</span>
+        <span class="copy-sep" title="Copy full ${label} Size" onclick="copyValue('${fullStr}', 'Copied: ${fullStr}')">×</span>
+        <span class="copy-part" title="Copy ${label} Height" onclick="copyValue('${hStr}', 'Copied: ${hStr}')">${hStr}</span>
+        <span style="color: var(--ui3-text-secondary);">${unit}</span>
+      `;
+    }
+
+    /**
+     * Renders a print dimension pair with mm unit (Max Print / similar).
+     */
+    function renderDimensionMm(w, h, copyLabel) {
+      const wStr = fmt(w), hStr = fmt(h);
+      const fullStr = `${wStr} × ${hStr} mm`;
+      return `
+        <span class="copy-part" title="Copy ${copyLabel} Width" onclick="copyValue('${wStr}', 'Copied: ${wStr}')">${wStr}</span>
+        <span class="copy-sep" title="Copy full ${copyLabel}" onclick="copyValue('${fullStr}', 'Copied: ${fullStr}')">×</span>
+        <span class="copy-part" title="Copy ${copyLabel} Height" onclick="copyValue('${hStr}', 'Copied: ${hStr}')">${hStr}</span>
+        <span style="color: var(--ui3-text-secondary);">mm</span>
+      `;
+    }
+
+    /** Toolbar: navigation arrows + unit switcher. */
+    function buildToolbarHtml(img, state) {
+      const { unit, isReviewMode, images, index } = state;
+      const navSvgPrev = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="transform: scaleX(-1);"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.76754 5.52511C6.9628 5.32985 7.27938 5.32985 7.47465 5.52511L9.59596 7.64643L9.94952 7.99999L9.59596 8.35354L7.47465 10.4749C7.27938 10.6701 6.9628 10.6701 6.76754 10.4749C6.57228 10.2796 6.57228 9.96302 6.76754 9.76775L8.53531 7.99999L6.76754 6.23222C6.57228 6.03695 6.57228 5.72037 6.76754 5.52511Z" fill="currentColor" fill-opacity="0.9"/></svg>`;
+      const navSvgNext = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.76754 5.52511C6.9628 5.32985 7.27938 5.32985 7.47465 5.52511L9.59596 7.64643L9.94952 7.99999L9.59596 8.35354L7.47465 10.4749C7.27938 10.6701 6.9628 10.6701 6.76754 10.4749C6.57228 10.2796 6.57228 9.96302 6.76754 9.76775L8.53531 7.99999L6.76754 6.23222C6.57228 6.03695 6.57228 5.72037 6.76754 5.52511Z" fill="currentColor" fill-opacity="0.9"/></svg>`;
+      const navHtml = images.length > 1 ? `
+        <button class="nav-btn" id="prevBtn" ${index === 0 ? 'disabled' : ''}>${navSvgPrev}</button>
+        <span class="counter">Image ${index + 1} of ${images.length}</span>
+        <button class="nav-btn" id="nextBtn" ${index === images.length - 1 ? 'disabled' : ''}>${navSvgNext}</button>` : '';
+      return `
+        <div class="toolbar" style="display: grid; grid-template-columns: 1fr auto 1fr;">
+          <div style="display: flex; align-items: center;">
+            ${isReviewMode ? `<button class="nav-btn" onclick="viewList()" style="font-size: 11px; padding-left: 0;">Image List</button>` : ''}
+          </div>
+          <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">${navHtml}</div>
+          <div style="display: flex; align-items: center; justify-content: flex-end; font-size: 11px;">
+            <span style="color: var(--ui3-text-secondary); cursor: default; margin-right: 4px;">Unit:</span>
+            <button class="unit-switch-btn ${unit === 'px' ? 'active' : ''}" onclick="setUnit('px')">px</button>
+            <span style="color: var(--ui3-text-secondary); opacity: 0.5; margin: 0 3px;">/</span>
+            <button class="unit-switch-btn ${unit === 'mm' ? 'active' : ''}" onclick="setUnit('mm')">mm</button>
+          </div>
+        </div>`;
+    }
+
+    /** Section 1: Layer Name, Effective PPI, Current Size, Color Correction, Download buttons. */
+    function buildSection1Html(img, cW, cH, unit, ppiStr, ppiClass, ccIndicatorHtml, hasCC, safeNameHtml, safeNameJs) {
+      return `
+        <div class="section-1">
+          <div class="layer-row"><span class="label">Layer Name</span><div class="layer-name-container"><span class="layer-name-value copyable" title="Click to copy" onclick="handleCopy(event, '${safeNameJs}', 'Layer Name')">${safeNameHtml}</span><div class="tooltip">${safeNameHtml}</div></div></div>
+          <div class="row"><span class="label">Effective PPI</span><span class="value copyable ppi-value ${ppiClass}" title="Click to copy" onclick="handleCopy(event, '${ppiStr}', 'PPI')">${ppiStr}</span></div>
+          <div class="row"><span class="label">Current Size</span>
+            <span class="value">${renderDimension(cW, cH, unit, 'Current')}</span>
+          </div>
+          <div class="row"><span class="label">Color Correction</span>${ccIndicatorHtml}</div>
+          <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
+            ${hasCC ? `<button class="btn-download-cc" id="downloadCcBtn">Download Image with Corrections</button>` : ''}
+            <button class="btn-secondary" id="downloadBtn">Download Original Image</button>
+          </div>
+        </div>`;
+    }
+
+    /** Section 2: Original Size, Crop Positioning, Scale, Copy Full Info. */
+    function buildSection2Html(img, oW, oH, pX, pY, unit) {
+      return `
+        <div class="section-2">
+          <div class="row"><span class="label">Original Size</span>
+            <span class="value">${renderDimension(oW, oH, unit, 'Original')}</span>
+          </div>
+          <div class="row"><span class="label">Crop Positioning</span>
+            <span class="value">
+              <span style="color: var(--ui3-text-secondary); font-weight: 400;">X:</span>
+              <span class="copy-part" title="Copy X" onclick="copyValue('${fmt(pX)}', 'Copied: ${fmt(pX)}')">${fmt(pX)}</span>
+              <span class="copy-sep" title="Copy full Crop Positioning" onclick="copyValue('X: ${fmt(pX)} ${unit}, Y: ${fmt(pY)} ${unit}', 'Copied: X: ${fmt(pX)} ${unit}, Y: ${fmt(pY)} ${unit}')">,</span>
+              <span style="color: var(--ui3-text-secondary); font-weight: 400;">Y:</span>
+              <span class="copy-part" title="Copy Y" onclick="copyValue('${fmt(pY)}', 'Copied: ${fmt(pY)}')">${fmt(pY)}</span>
+              <span style="color: var(--ui3-text-secondary); font-weight: 400;">${unit}</span>
+            </span>
+          </div>
+          <div class="row"><span class="label">Scale</span>
+            <span class="value">
+              <span class="copy-part" title="Copy Scale X" onclick="copyValue('${fmt(img.resScaleX)}', 'Copied: ${fmt(img.resScaleX)}')">${fmt(img.resScaleX)}%</span>
+              <span class="copy-sep" title="Copy full Scale" onclick="copyValue('${fmt(img.resScaleX)}% × ${fmt(img.resScaleY)}%', 'Copied: ${fmt(img.resScaleX)}% × ${fmt(img.resScaleY)}%')">×</span>
+              <span class="copy-part" title="Copy Scale Y" onclick="copyValue('${fmt(img.resScaleY)}', 'Copied: ${fmt(img.resScaleY)}')">${fmt(img.resScaleY)}%</span>
+            </span>
+          </div>
+          <div class="row" style="justify-content: flex-end; margin-top: 4px;">
+            <span class="action-link" id="copyInfoBtn">Copy Full Info</span>
+          </div>
+        </div>`;
+    }
+
+    /** Section 3: Target PPI input, Max Print size, Resize button. */
+    function buildSection3Html(maxW, maxH, targetPpi) {
+      return `
+        <div class="section-3">
+          <div class="row"><span class="label">Target PPI</span><div class="variable_control--inputWrapper--LUhHu"><label class="scrubbable_control--containerBordered---60m8"><span class="transform_panel--inactiveLabel--ffsiD">PPI</span><div style="flex:1; display:flex;"><input type="number" id="targetPpi" class="raw_components--textInput--DZIFa" value="${targetPpi}" oninput="handlePpiInput(this.value)" onfocus="this.select()"></div></label></div></div>
+          <div class="row"><span class="label">Max Print</span>
+            <span class="value" id="maxPrintVal">${renderDimensionMm(maxW, maxH, 'Max Print')}</span>
+          </div>
+          <button id="resizeBtn">Resize to Target PPI</button>
+        </div>`;
+    }
+
+    /** CMYK Export section: Profile/Intent dropdowns, BPC checkbox, Export button. */
+    function buildCmykSectionHtml(state) {
+      return `
+        <div class="cmyk-export-section">
+          <div style="font-weight: 600; margin-bottom: 2px; display: flex; justify-content: space-between; align-items: center;">
+            <span>CMYK Export</span>
+            <span style="font-size: 11px; color: var(--ui3-text-tertiary, #b3b3b3); font-weight: 400;">100% JPG</span>
+          </div>
+          <div style="display: grid; grid-template-columns: auto 1fr; column-gap: 8px; row-gap: 8px; align-items: center;">
+            <span class="label" style="font-size: 11px; color: var(--ui3-text-secondary); line-height: 24px;">Profile</span>
+            <div id="cmyk-profile-dropdown-container"></div>
+            <span class="label" style="font-size: 11px; color: var(--ui3-text-secondary); line-height: 24px;">Intent</span>
+            <div id="cmyk-intent-dropdown-container"></div>
+          </div>
+          <input type="file" id="customIccInput" accept=".icc,.icm" style="display: none;" onchange="handleCustomIccFile(event)">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; margin: 4px 0;">
+            <input type="checkbox" id="cmykBpcCheck" ${state.cmykBpc !== false ? 'checked' : ''} onchange="handleBpcChange(this.checked)">
+            <span style="font-size: 11px; color: var(--ui3-text);">Black Point Compensation</span>
+          </label>
+          <button class="btn-primary" id="exportCmykBtn" onclick="triggerCmykExport()" ${state.isExportingCmyk ? 'disabled' : ''}>
+            ${state.isExportingCmyk ? 'Exporting...' : 'Export CMYK (JPG)'}
+          </button>
+        </div>`;
+    }
 
     function renderImage() {
       try {
@@ -1733,131 +1889,13 @@ jscolorengine/src/Transform.js:
         ? `<span class="value" style="color: var(--ui3-text-brand); font-weight: 600;">Applied</span>`
         : `<span class="value" style="color: var(--ui3-text-secondary); font-weight: 500;">None</span>`;
 
-      const navSvgPrev = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="transform: scaleX(-1);"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.76754 5.52511C6.9628 5.32985 7.27938 5.32985 7.47465 5.52511L9.59596 7.64643L9.94952 7.99999L9.59596 8.35354L7.47465 10.4749C7.27938 10.6701 6.9628 10.6701 6.76754 10.4749C6.57228 10.2796 6.57228 9.96302 6.76754 9.76775L8.53531 7.99999L6.76754 6.23222C6.57228 6.03695 6.57228 5.72037 6.76754 5.52511Z" fill="currentColor" fill-opacity="0.9"/></svg>`;
-      const navSvgNext = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.76754 5.52511C6.9628 5.32985 7.27938 5.32985 7.47465 5.52511L9.59596 7.64643L9.94952 7.99999L9.59596 8.35354L7.47465 10.4749C7.27938 10.6701 6.9628 10.6701 6.76754 10.4749C6.57228 10.2796 6.57228 9.96302 6.76754 9.76775L8.53531 7.99999L6.76754 6.23222C6.57228 6.03695 6.57228 5.72037 6.76754 5.52511Z" fill="currentColor" fill-opacity="0.9"/></svg>`;
-
-      const navHtml = images.length > 1 ? `
-        <button class="nav-btn" id="prevBtn" ${index === 0 ? 'disabled' : ''}>${navSvgPrev}</button>
-        <span class="counter">Image ${index + 1} of ${images.length}</span>
-        <button class="nav-btn" id="nextBtn" ${index === images.length - 1 ? 'disabled' : ''}>${navSvgNext}</button>` : '';
-
-      const toolbarHtml = `
-        <div class="toolbar" style="display: grid; grid-template-columns: 1fr auto 1fr;">
-          <div style="display: flex; align-items: center;">
-            ${isReviewMode ? `<button class="nav-btn" onclick="viewList()" style="font-size: 11px; padding-left: 0;">Image List</button>` : ''}
-          </div>
-          <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">${navHtml}</div>
-          <div style="display: flex; align-items: center; justify-content: flex-end; font-size: 11px;">
-            <span style="color: var(--ui3-text-secondary); cursor: default; margin-right: 4px;">Unit:</span>
-            <button class="unit-switch-btn ${unit === 'px' ? 'active' : ''}" onclick="setUnit('px')">px</button>
-            <span style="color: var(--ui3-text-secondary); opacity: 0.5; margin: 0 3px;">/</span>
-            <button class="unit-switch-btn ${unit === 'mm' ? 'active' : ''}" onclick="setUnit('mm')">mm</button>
-          </div>
-        </div>`;
-
       app.innerHTML = `
-        ${toolbarHtml}
+        ${buildToolbarHtml(img, state)}
         <div class="data-content">
-          <div class="section-1">
-            <div class="layer-row"><span class="label">Layer Name</span><div class="layer-name-container"><span class="layer-name-value copyable" title="Click to copy" onclick="handleCopy(event, '${safeNameJs}', 'Layer Name')">${safeNameHtml}</span><div class="tooltip">${safeNameHtml}</div></div></div>
-
-            <div class="row"><span class="label">Effective PPI</span><span class="value copyable ppi-value ${ppiClass}" title="Click to copy" onclick="handleCopy(event, '${ppiStr}', 'PPI')">${ppiStr}</span></div>
-
-            <div class="row"><span class="label">Current Size</span>
-              <span class="value">
-                <span class="copy-part" title="Copy Current Width" onclick="copyValue('${fmt(cW)}', 'Copied: ${fmt(cW)}')">${fmt(cW)}</span>
-                <span class="copy-sep" title="Copy full Current Size" onclick="copyValue('${fmt(cW)} × ${fmt(cH)} ${unit}', 'Copied: ${fmt(cW)} × ${fmt(cH)} ${unit}')">×</span>
-                <span class="copy-part" title="Copy Current Height" onclick="copyValue('${fmt(cH)}', 'Copied: ${fmt(cH)}')">${fmt(cH)}</span>
-                <span style="color: var(--ui3-text-secondary);">${unit}</span>
-              </span>
-            </div>
-
-            <div class="row"><span class="label">Color Correction</span>${ccIndicatorHtml}</div>
-
-            <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
-              ${hasCC ? `<button class="btn-download-cc" id="downloadCcBtn">Download Image with Corrections</button>` : ''}
-              <button class="btn-secondary" id="downloadBtn">Download Original Image</button>
-            </div>
-          </div>
-
-          <div class="section-2">
-            <div class="row"><span class="label">Original Size</span>
-              <span class="value">
-                <span class="copy-part" title="Copy Original Width" onclick="copyValue('${fmt(oW)}', 'Copied: ${fmt(oW)}')">${fmt(oW)}</span>
-                <span class="copy-sep" title="Copy full Original Size" onclick="copyValue('${fmt(oW)} × ${fmt(oH)} ${unit}', 'Copied: ${fmt(oW)} × ${fmt(oH)} ${unit}')">×</span>
-                <span class="copy-part" title="Copy Original Height" onclick="copyValue('${fmt(oH)}', 'Copied: ${fmt(oH)}')">${fmt(oH)}</span>
-                <span style="color: var(--ui3-text-secondary);">${unit}</span>
-              </span>
-            </div>
-
-            <div class="row"><span class="label">Crop Positioning</span>
-              <span class="value">
-                <span style="color: var(--ui3-text-secondary); font-weight: 400;">X:</span>
-                <span class="copy-part" title="Copy X" onclick="copyValue('${fmt(pX)}', 'Copied: ${fmt(pX)}')">${fmt(pX)}</span>
-                <span class="copy-sep" title="Copy full Crop Positioning" onclick="copyValue('X: ${fmt(pX)} ${unit}, Y: ${fmt(pY)} ${unit}', 'Copied: X: ${fmt(pX)} ${unit}, Y: ${fmt(pY)} ${unit}')">,</span>
-                <span style="color: var(--ui3-text-secondary); font-weight: 400;">Y:</span>
-                <span class="copy-part" title="Copy Y" onclick="copyValue('${fmt(pY)}', 'Copied: ${fmt(pY)}')">${fmt(pY)}</span>
-                <span style="color: var(--ui3-text-secondary); font-weight: 400;">${unit}</span>
-              </span>
-            </div>
-
-            <div class="row"><span class="label">Scale</span>
-              <span class="value">
-                <span class="copy-part" title="Copy Scale X" onclick="copyValue('${fmt(img.resScaleX)}', 'Copied: ${fmt(img.resScaleX)}')">${fmt(img.resScaleX)}%</span>
-                <span class="copy-sep" title="Copy full Scale" onclick="copyValue('${fmt(img.resScaleX)}% × ${fmt(img.resScaleY)}%', 'Copied: ${fmt(img.resScaleX)}% × ${fmt(img.resScaleY)}%')">×</span>
-                <span class="copy-part" title="Copy Scale Y" onclick="copyValue('${fmt(img.resScaleY)}', 'Copied: ${fmt(img.resScaleY)}')">${fmt(img.resScaleY)}%</span>
-              </span>
-            </div>
-
-            <div class="row" style="justify-content: flex-end; margin-top: 4px;">
-              <span class="action-link" id="copyInfoBtn">Copy Full Info</span>
-            </div>
-          </div>
-
-          <div class="section-3">
-            <div class="row"><span class="label">Target PPI</span><div class="variable_control--inputWrapper--LUhHu"><label class="scrubbable_control--containerBordered---60m8"><span class="transform_panel--inactiveLabel--ffsiD">PPI</span><div style="flex:1; display:flex;"><input type="number" id="targetPpi" class="raw_components--textInput--DZIFa" value="${targetPpi}" oninput="handlePpiInput(this.value)" onfocus="this.select()"></div></label></div></div>
-
-            <div class="row"><span class="label">Max Print</span>
-              <span class="value" id="maxPrintVal">
-                <span class="copy-part" title="Copy Max Width" onclick="copyValue('${fmt(maxW)}', 'Copied: ${fmt(maxW)}')">${fmt(maxW)}</span>
-                <span class="copy-sep" title="Copy full Max Print" onclick="copyValue('${fmt(maxW)} × ${fmt(maxH)} mm', 'Copied: ${fmt(maxW)} × ${fmt(maxH)} mm')">×</span>
-                <span class="copy-part" title="Copy Max Height" onclick="copyValue('${fmt(maxH)}', 'Copied: ${fmt(maxH)}')">${fmt(maxH)}</span>
-                <span style="color: var(--ui3-text-secondary);">mm</span>
-              </span>
-            </div>
-            <button id="resizeBtn">Resize to Target PPI</button>
-          </div>
-
-          <div class="cmyk-export-section">
-            <div style="font-weight: 600; margin-bottom: 2px; display: flex; justify-content: space-between; align-items: center;">
-              <span>CMYK Export</span>
-              <span style="font-size: 11px; color: var(--ui3-text-tertiary, #b3b3b3); font-weight: 400;">100% JPG</span>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: auto 1fr; column-gap: 8px; row-gap: 8px; align-items: center;">
-              <span class="label" style="font-size: 11px; color: var(--ui3-text-secondary); line-height: 24px;">Profile</span>
-              <div id="cmyk-profile-dropdown-container"></div>
-
-              <span class="label" style="font-size: 11px; color: var(--ui3-text-secondary); line-height: 24px;">Intent</span>
-              <div id="cmyk-intent-dropdown-container"></div>
-            </div>
-            <input type="file" id="customIccInput" accept=".icc,.icm" style="display: none;" onchange="handleCustomIccFile(event)">
-            
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; margin: 2px 0;">
-              <input
-                type="checkbox"
-                id="cmykBpcCheck"
-                ${state.cmykBpc !== false ? 'checked' : ''}
-                onchange="handleBpcChange(this.checked)"
-              >
-              <span style="font-size: 11px; color: var(--ui3-text);">Black Point Compensation</span>
-            </label>
-
-            <button class="btn-primary" id="exportCmykBtn" onclick="triggerCmykExport()" ${state.isExportingCmyk ? 'disabled' : ''}>
-              ${state.isExportingCmyk ? 'Exporting...' : 'Export CMYK (JPG)'}
-            </button>
-          </div>
-
+          ${buildSection1Html(img, cW, cH, unit, ppiStr, ppiClass, ccIndicatorHtml, hasCC, safeNameHtml, safeNameJs)}
+          ${buildSection2Html(img, oW, oH, pX, pY, unit)}
+          ${buildSection3Html(maxW, maxH, targetPpi)}
+          ${buildCmykSectionHtml(state)}
         </div>
       `;
 
@@ -1995,7 +2033,7 @@ jscolorengine/src/Transform.js:
             state.index = idx;
             shouldRender = true;
           }
-          if (JSON.stringify(state.images[idx]) !== JSON.stringify(msg.images[0])) {
+          if (!shallowEqual(state.images[idx], msg.images[0])) {
             state.images[idx] = msg.images[0];
             shouldRender = true;
           }

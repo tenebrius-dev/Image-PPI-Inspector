@@ -59,17 +59,30 @@ let cancelScanRequested = false;
 
 // ── Diagnostics ────────────────────────────────────────────────────────────
 let diagLogs: string[] = [];
+let diagDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+function flushDiagLogs() {
+    diagDebounceTimer = null;
+    figma.ui.postMessage({ type: 'debug-logs', logs: diagLogs.join('\\n') });
+}
+
+function scheduleDiagFlush() {
+    if (diagDebounceTimer !== null) return;
+    // Post at most once per 500 ms to avoid flooding the IPC channel during scans
+    diagDebounceTimer = setTimeout(flushDiagLogs, 500);
+}
+
 function logDiag(msg: string) {
     console.log(`[PPI Inspector] ${msg}`);
     diagLogs.push(msg);
     if (diagLogs.length > 100) diagLogs.shift();
-    figma.ui.postMessage({ type: 'debug-logs', logs: diagLogs.join('\\n') });
+    scheduleDiagFlush();
 }
 function warnDiag(msg: string, err?: any) {
     console.warn(`[PPI Inspector] ${msg}`, err || '');
     diagLogs.push(`[WARN] ${msg} ${err ? String(err) : ''}`);
     if (diagLogs.length > 100) diagLogs.shift();
-    figma.ui.postMessage({ type: 'debug-logs', logs: diagLogs.join('\\n') });
+    scheduleDiagFlush();
 }
 
 // ── Utilities ──────────────────────────────────────────────────────────────
@@ -251,12 +264,9 @@ async function checkSelection(): Promise<void> {
     logDiag(`checkSelection: Selected ${selection.length} nodes. Found ${imageNodes.length} image nodes inside.`);
 
     if (imageNodes.length > 0 && imageNodes.length <= 50) {
-        logDiag(`checkSelection: Processing ${imageNodes.length} nodes...`);
-        const images: ImageNodeData[] = [];
-        for (const node of imageNodes) {
-            const data = await calculateNodeData(node);
-            if (data) images.push(data);
-        }
+        logDiag(`checkSelection: Processing ${imageNodes.length} nodes in parallel...`);
+        const results = await Promise.all(imageNodes.map(node => calculateNodeData(node)));
+        const images: ImageNodeData[] = results.filter((d): d is ImageNodeData => d !== null);
         logDiag(`checkSelection: Successfully calculated data for ${images.length} images.`);
         if (images.length > 0) {
             figma.ui.postMessage({
@@ -306,22 +316,27 @@ async function handleScan(msg: ScanMessage): Promise<void> {
     const resultsPPI: ImageNodeData[] = [];
     const resultsCC:  ImageNodeData[] = [];
 
-    for (let i = 0; i < total; i++) {
+    const BATCH_SIZE = 5;
+    for (let i = 0; i < total; i += BATCH_SIZE) {
         if (cancelScanRequested) {
             figma.ui.postMessage({ type: 'scan-cancelled' });
             return;
         }
 
-        const data = await calculateNodeData(allImageNodes[i]);
-        if (data) {
-            if (data.ppi < LOW_PPI_THRESHOLD) resultsPPI.push(data);
-            if (msg.includeCC && data.hasCC)   resultsCC.push(data);
+        const batchEnd = Math.min(i + BATCH_SIZE, total);
+        const batch = allImageNodes.slice(i, batchEnd);
+
+        const batchResults = await Promise.all(batch.map(n => calculateNodeData(n)));
+
+        for (const data of batchResults) {
+            if (data) {
+                if (data.ppi < LOW_PPI_THRESHOLD) resultsPPI.push(data);
+                if (msg.includeCC && data.hasCC)   resultsCC.push(data);
+            }
         }
 
-        if (i % 2 === 0 || i === total - 1) {
-            figma.ui.postMessage({ type: 'scan-progress', current: i + 1, total });
-            await yieldToUI();
-        }
+        figma.ui.postMessage({ type: 'scan-progress', current: batchEnd, total });
+        await yieldToUI();
     }
 
     if (cancelScanRequested) {
@@ -406,8 +421,13 @@ async function handleExportCMYK(msg: ExportCmykMessage): Promise<void> {
     try {
         const { fill, image, node } = await getImageFillFromNode(msg.nodeId);
         const size = await image.getSizeAsync();
-        const nodeData = await calculateNodeData(node);
-        const ppi = nodeData ? nodeData.ppi : 300;
+        // Compute PPI directly — avoids a second getSizeAsync() inside calculateNodeData()
+        const nodeWidth  = Math.max(node.width,  1);
+        const nodeHeight = Math.max(node.height, 1);
+        const ppi = Math.round(
+            ((size.width  / (nodeWidth  / FIGMA_PX_PER_INCH)) +
+             (size.height / (nodeHeight / FIGMA_PX_PER_INCH))) / 2
+        );
         const hasCC = hasColorCorrection(fill);
 
         let bytes: Uint8Array;
@@ -464,11 +484,8 @@ async function handleFocusNode(nodeId: string): Promise<void> {
 
 async function handleRestoreSelection(nodeIds: string[]): Promise<void> {
     try {
-        const nodes: SceneNode[] = [];
-        for (const id of nodeIds) {
-            const node = await figma.getNodeByIdAsync(id);
-            if (node) nodes.push(node as SceneNode);
-        }
+        const resolved = await Promise.all(nodeIds.map(id => figma.getNodeByIdAsync(id)));
+        const nodes = resolved.filter((n): n is SceneNode => n !== null && 'x' in n) as SceneNode[];
         figma.currentPage.selection = nodes;
     } catch (e) {
         console.error('Failed to restore initial selection', e);
