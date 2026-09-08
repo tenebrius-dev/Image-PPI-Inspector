@@ -44,6 +44,12 @@ interface DownloadMessage {
     nodeId: string;
 }
 
+interface ExportCmykMessage {
+    type: 'export-cmyk-request';
+    nodeId: string;
+    profileKey: string;
+}
+
 // ── Init ───────────────────────────────────────────────────────────────────
 
 figma.showUI(__html__, { width: 300, height: 500, themeColors: true });
@@ -395,6 +401,55 @@ async function handleDownloadCC(msg: DownloadMessage): Promise<void> {
     }
 }
 
+async function handleExportCMYK(msg: ExportCmykMessage): Promise<void> {
+    let tempRect: RectangleNode | null = null;
+    try {
+        const { fill, image, node } = await getImageFillFromNode(msg.nodeId);
+        const size = await image.getSizeAsync();
+        const nodeData = await calculateNodeData(node);
+        const ppi = nodeData ? nodeData.ppi : 300;
+        const hasCC = hasColorCorrection(fill);
+
+        let bytes: Uint8Array;
+        if (hasCC) {
+            tempRect = figma.createRectangle();
+            tempRect.name = 'Export_Temp_CMYK';
+            tempRect.resize(size.width, size.height);
+            tempRect.x = node.x + TEMP_NODE_OFFSET_X;
+            tempRect.y = node.y;
+
+            const { imageTransform: _removed, ...restFill } = clone(fill);
+            const newFill: ImagePaint = { ...restFill, scaleMode: 'FILL' };
+            tempRect.fills = [newFill];
+            figma.currentPage.appendChild(tempRect);
+
+            bytes = await tempRect.exportAsync({
+                format: 'PNG',
+                constraint: { type: 'SCALE', value: size.width / tempRect.width },
+                imageResampling: 'BASIC',
+            } as any);
+        } else {
+            bytes = await image.getBytesAsync();
+        }
+
+        figma.ui.postMessage({
+            type: 'export-cmyk-ready',
+            bytes,
+            name: node.name,
+            ppi,
+            width: size.width,
+            height: size.height,
+            profileKey: msg.profileKey,
+            hasCC,
+        });
+    } catch (err: any) {
+        figma.notify('❌ Export CMYK failed: ' + err.message);
+        figma.ui.postMessage({ type: 'export-cmyk-error', error: err.message });
+    } finally {
+        tempRect?.remove();
+    }
+}
+
 async function handleFocusNode(nodeId: string): Promise<void> {
     try {
         const node = await figma.getNodeByIdAsync(nodeId) as SceneNode;
@@ -450,5 +505,6 @@ figma.ui.onmessage = async (msg: any) => {
         case 'resize':            await handleResize(msg); break;
         case 'download-image':    await handleDownloadImage(msg); break;
         case 'download-image-cc': await handleDownloadCC(msg); break;
+        case 'export-cmyk-request': await handleExportCMYK(msg); break;
     }
 };

@@ -1,0 +1,6 @@
+.DS_Store
+old_head_ui.html
+*.zip
+Temp/
+image-ppi-inspector/node_modules/
+image-ppi-inspector/old_ui.html
