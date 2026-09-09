@@ -421,13 +421,8 @@ async function handleExportCMYK(msg: ExportCmykMessage): Promise<void> {
     try {
         const { fill, image, node } = await getImageFillFromNode(msg.nodeId);
         const size = await image.getSizeAsync();
-        // Compute PPI directly — avoids a second getSizeAsync() inside calculateNodeData()
-        const nodeWidth  = Math.max(node.width,  1);
-        const nodeHeight = Math.max(node.height, 1);
-        const ppi = Math.round(
-            ((size.width  / (nodeWidth  / FIGMA_PX_PER_INCH)) +
-             (size.height / (nodeHeight / FIGMA_PX_PER_INCH))) / 2
-        );
+        const nodeData = await calculateNodeData(node);
+        const ppi = nodeData ? nodeData.ppi : 300;
         const hasCC = hasColorCorrection(fill);
 
         let bytes: Uint8Array;

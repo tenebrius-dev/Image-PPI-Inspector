@@ -1991,24 +1991,59 @@ jscolorengine/src/Transform.js:
       try {
         const { bytes, width, height, name, hasCC } = msg;
         
+        // 1. Decode compressed PNG/JPEG bytes to raw RGBA pixels
+        const blob = new Blob([bytes]);
+        let rgba;
+        let w = width;
+        let h = height;
+
+        if (typeof createImageBitmap !== 'undefined') {
+          const bitmap = await createImageBitmap(blob);
+          w = bitmap.width;
+          h = bitmap.height;
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          ctx.drawImage(bitmap, 0, 0);
+          rgba = ctx.getImageData(0, 0, w, h).data;
+          if (bitmap.close) bitmap.close();
+        } else {
+          const url = window.URL.createObjectURL(blob);
+          const img = new Image();
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = url;
+          });
+          w = img.naturalWidth || width;
+          h = img.naturalHeight || height;
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          ctx.drawImage(img, 0, 0);
+          rgba = ctx.getImageData(0, 0, w, h).data;
+          window.URL.revokeObjectURL(url);
+        }
+
         const targetIntent = state.cmykIntent || 'relative';
-        
         const bpc = state.cmykBpc !== false;
         
         const iccRawBytes = await CmykEngine.getProfileBytes(state.cmykProfile, state.customIccData);
-        const cmykData = await CmykEngine.convertRgbaToCmyk(bytes, width, height, state.cmykProfile, state.customIccData, { intent: targetIntent, bpc: bpc });
-        const jpegBytes = CmykEngine.encodeCMYKJpeg(cmykData, width, height, { quality: 100, iccProfile: iccRawBytes, dpi: Math.round(msg.ppi || 300) });
+        const cmykData = await CmykEngine.convertRgbaToCmyk(rgba, w, h, state.cmykProfile, state.customIccData, { intent: targetIntent, bpc: bpc });
+        const jpegBytes = CmykEngine.encodeCMYKJpeg(cmykData, w, h, { quality: 100, iccProfile: iccRawBytes, dpi: Math.round(msg.ppi || 300) });
         
-        const blob = new Blob([jpegBytes], { type: 'image/jpeg' });
-        const url = window.URL.createObjectURL(blob);
+        const outBlob = new Blob([jpegBytes], { type: 'image/jpeg' });
+        const outUrl = window.URL.createObjectURL(outBlob);
         const link = document.createElement('a');
-        link.href = url;
+        link.href = outUrl;
         const suffix = hasCC ? '_CC' : '';
         link.download = `${name}${suffix}_CMYK.jpg`;
         link.click();
-        window.URL.revokeObjectURL(url);
+        window.URL.revokeObjectURL(outUrl);
       } catch (err) {
-        parent.postMessage({ pluginMessage: { type: 'debug-log-ui', log: "Export error: " + err.message + "\\n" + err.stack } }, '*');
+        parent.postMessage({ pluginMessage: { type: 'debug-log-ui', log: "Export error: " + err.message + "\n" + err.stack } }, '*');
       } finally {
         state.isExportingCmyk = false;
         renderImage();
